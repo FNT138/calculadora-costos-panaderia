@@ -12,11 +12,19 @@ router = APIRouter(prefix="/api/backup", tags=["Respaldos y Persistencia"])
 @router.get("/status")
 def estado_persistencia():
     has_postgres = bool(DATABASE_URL and not DATABASE_URL.startswith("sqlite"))
+    has_turso = bool(os.getenv("TURSO_DATABASE_URL"))
     has_github_sync = bool(os.getenv("GITHUB_TOKEN") and os.getenv("GITHUB_REPO"))
     
+    if has_turso:
+        motor = "Turso (libSQL Cloud - Permanente)"
+    elif has_postgres:
+        motor = "PostgreSQL (Nube permanente)"
+    else:
+        motor = "SQLite Local"
+        
     return {
-        "motor_base_datos": "PostgreSQL (Nube permanente)" if has_postgres else "SQLite Local",
-        "es_permanente": has_postgres or has_github_sync,
+        "motor_base_datos": motor,
+        "es_permanente": has_postgres or has_turso or has_github_sync,
         "github_sync_activo": has_github_sync,
         "github_repo": os.getenv("GITHUB_REPO") if has_github_sync else None
     }

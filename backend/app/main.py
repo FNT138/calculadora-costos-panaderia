@@ -5,18 +5,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
+import json
 from .database import engine, Base, SessionLocal
+from .models import Insumo
 from .seed import seed_database
-from .github_sync import pull_backup_from_github
+from .github_sync import pull_backup_from_github, import_dict_to_db
 from .routers import insumos, recetas, produccion, simulador, config, backup
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Inicialización de tablas y restauración de datos
 Base.metadata.create_all(bind=engine)
 try:
     db = SessionLocal()
-    # Si GitHub Sync está configurado, restauramos el último respaldo del repo
+    # 1. Si GitHub Sync está configurado, restauramos el último respaldo remoto
     if os.getenv("GITHUB_TOKEN") and os.getenv("GITHUB_REPO"):
         pull_backup_from_github(db)
+    elif db.query(Insumo).count() == 0:
+        # 2. Si es una base nueva/vacía (ej. Turso nuevo), restauramos la copia del repositorio
+        backup_local = BASE_DIR / "data" / "db_backup.json"
+        if backup_local.exists():
+            with open(backup_local, "r", encoding="utf-8") as f:
+                backup_data = json.load(f)
+            import_dict_to_db(db, backup_data)
+            print("Base de datos inicializada desde data/db_backup.json")
     seed_database()
     db.close()
 except Exception as e:
@@ -50,7 +62,6 @@ def health():
     return {"status": "ok", "app": "Panaderia Costos"}
 
 # Servir Frontend compilado si existe la carpeta 'dist'
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
 DIST_DIR = BASE_DIR / "frontend" / "dist"
 
 if DIST_DIR.exists() and (DIST_DIR / "index.html").exists():
