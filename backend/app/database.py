@@ -7,27 +7,33 @@ TURSO_DATABASE_URL = os.getenv("TURSO_DATABASE_URL")
 TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-if TURSO_DATABASE_URL:
-    # Soporte para Turso / libSQL Cloud
-    url = TURSO_DATABASE_URL
-    if url.startswith("libsql://"):
-        url = url.replace("libsql://", "sqlite+libsql://", 1)
-    elif not url.startswith("sqlite+libsql://"):
-        url = f"sqlite+libsql://{url}"
-    if "?" not in url:
-        url = f"{url}?secure=true"
-    
-    connect_args = {}
-    if TURSO_AUTH_TOKEN:
-        connect_args["auth_token"] = TURSO_AUTH_TOKEN
-    
-    engine = create_engine(url, connect_args=connect_args)
-elif DATABASE_URL:
-    # Render y plataformas cloud usan postgres://, SQLAlchemy 2.0 requiere postgresql://
+engine = None
+
+if DATABASE_URL:
+    # Render, Neon.tech, Supabase (PostgreSQL 100% permanente y compatible con Python 3.14)
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     engine = create_engine(DATABASE_URL)
-else:
+elif TURSO_DATABASE_URL:
+    try:
+        url = TURSO_DATABASE_URL
+        if url.startswith("libsql://"):
+            url = url.replace("libsql://", "sqlite+libsql://", 1)
+        elif not url.startswith("sqlite+libsql://"):
+            url = f"sqlite+libsql://{url}"
+        if "?" not in url:
+            url = f"{url}?secure=true"
+        
+        connect_args = {}
+        if TURSO_AUTH_TOKEN:
+            connect_args["auth_token"] = TURSO_AUTH_TOKEN
+        
+        engine = create_engine(url, connect_args=connect_args)
+    except Exception as e:
+        print(f"Aviso Turso: {e}. Usando SQLite local.")
+        engine = None
+
+if engine is None:
     BASE_DIR = Path(__file__).resolve().parent.parent.parent
     DB_PATH = BASE_DIR / "panaderia.db"
     DATABASE_URL = f"sqlite:///{DB_PATH}"
