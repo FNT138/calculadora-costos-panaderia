@@ -16,13 +16,19 @@ if DATABASE_URL:
         url = url.replace("postgres://", "postgresql://", 1)
     
     # 1. Intentamos con el driver estándar (psycopg 3 o el configurado)
+    pool_kwargs = {
+        "pool_pre_ping": True,
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_recycle": 300
+    }
     try:
-        engine = create_engine(url)
+        engine = create_engine(url, **pool_kwargs)
     except Exception as e1:
         print(f"Aviso: Fallo inicial de driver PostgreSQL ({e1}), intentando con postgresql+psycopg2://...")
         try:
             url_p2 = url.replace("postgresql://", "postgresql+psycopg2://", 1)
-            engine = create_engine(url_p2)
+            engine = create_engine(url_p2, **pool_kwargs)
         except Exception as e2:
             print(f"Error conectando a PostgreSQL ({e2}). Usando SQLite local.")
             engine = None

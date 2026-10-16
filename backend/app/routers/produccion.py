@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from ..database import get_db
 from ..models import SesionProduccion, SesionProduccionItem, Receta
 from ..schemas import SesionCreate, SesionOut, SesionItemOut
@@ -50,7 +50,14 @@ def format_sesion_out(sesion: SesionProduccion) -> SesionOut:
 
 @router.get("", response_model=List[SesionOut])
 def listar_sesiones(db: Session = Depends(get_db)):
-    sesiones = db.query(SesionProduccion).order_by(SesionProduccion.fecha.desc()).all()
+    sesiones = (
+        db.query(SesionProduccion)
+        .options(
+            selectinload(SesionProduccion.items).selectinload(SesionProduccionItem.receta)
+        )
+        .order_by(SesionProduccion.fecha.desc())
+        .all()
+    )
     return [format_sesion_out(s) for s in sesiones]
 
 @router.post("", response_model=SesionOut, status_code=201)

@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from ..database import get_db
 from ..models import Receta, RecetaIngrediente, Insumo, SesionProduccionItem
 from ..schemas import RecetaCreate, RecetaUpdate, RecetaOut, RecetaIngredienteOut
@@ -52,7 +52,9 @@ def listar_recetas(
     db: Session = Depends(get_db)
 ):
     valor_hora = get_config_val(db, "costo_hora_defecto", 20000.0)
-    query = db.query(Receta)
+    query = db.query(Receta).options(
+        selectinload(Receta.ingredientes).selectinload(RecetaIngrediente.insumo)
+    )
     if categoria:
         query = query.filter(Receta.categoria == categoria)
     if buscar:
@@ -97,7 +99,14 @@ def crear_receta(receta_in: RecetaCreate, db: Session = Depends(get_db)):
 
 @router.get("/{receta_id}", response_model=RecetaOut)
 def obtener_receta(receta_id: int, db: Session = Depends(get_db)):
-    receta = db.query(Receta).filter(Receta.id == receta_id).first()
+    receta = (
+        db.query(Receta)
+        .options(
+            selectinload(Receta.ingredientes).selectinload(RecetaIngrediente.insumo)
+        )
+        .filter(Receta.id == receta_id)
+        .first()
+    )
     if not receta:
         raise HTTPException(status_code=404, detail="Receta no encontrada")
     valor_hora = get_config_val(db, "costo_hora_defecto", 20000.0)
