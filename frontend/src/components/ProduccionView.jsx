@@ -11,9 +11,12 @@ import {
   Layers,
   ArrowRight,
   Lock,
-  Edit2
+  Edit2,
+  FileText,
+  ChefHat
 } from 'lucide-react';
 import { api } from '../api';
+import InformeProduccionModal from './InformeProduccionModal';
 
 export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
   const [sesiones, setSesiones] = useState([]);
@@ -21,16 +24,20 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Modal
+  // Modal de Edición / Creación
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     titulo: '',
     horas_trabajadas: 3.0,
     costo_hora_mano_obra: 20000.0,
+    modo_calculo: 'activo',
     notas: '',
     items: []
   });
+
+  // Modal de Informe de Producción
+  const [sesionInforme, setSesionInforme] = useState(null);
 
   const cargarDatos = async () => {
     try {
@@ -59,17 +66,19 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
       if (onRequirePin) onRequirePin();
       return;
     }
-    if (sesion) {
+    if (sesion && sesion.id && Array.isArray(sesion.items)) {
       setEditingId(sesion.id);
       setFormData({
-        titulo: sesion.titulo,
+        titulo: sesion.titulo || '',
         horas_trabajadas: sesion.horas_trabajadas,
         costo_hora_mano_obra: sesion.costo_hora_mano_obra,
+        modo_calculo: 'activo',
         notas: sesion.notas || '',
         items: sesion.items.map(it => ({
           receta_id: it.receta_id,
           unidades_producidas: it.unidades_producidas,
-          factor_dificultad: it.factor_dificultad || 1.0
+          factor_dificultad: it.factor_dificultad || 1.0,
+          tandas: it.tandas || 1.0
         }))
       });
     } else {
@@ -79,8 +88,9 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
         titulo: 'Hornada del día',
         horas_trabajadas: 3.0,
         costo_hora_mano_obra: valorHora,
+        modo_calculo: 'activo',
         notas: '',
-        items: recetas.length > 0 ? [{ receta_id: recetas[0].id, unidades_producidas: 30, factor_dificultad: 1.0 }] : []
+        items: recetas.length > 0 ? [{ receta_id: recetas[0].id, unidades_producidas: 3, factor_dificultad: 1.0, tandas: 1.0 }] : []
       });
     }
     setIsModalOpen(true);
@@ -100,7 +110,7 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
       ...prev,
       items: [
         ...prev.items,
-        { receta_id: recetas[0].id, unidades_producidas: 20, factor_dificultad: 1.0 }
+        { receta_id: recetas[0].id, unidades_producidas: 3, factor_dificultad: 1.0, tandas: 1.0 }
       ]
     }));
   };
@@ -136,23 +146,29 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
         titulo: formData.titulo.trim(),
         horas_trabajadas: Number(formData.horas_trabajadas) || 1,
         costo_hora_mano_obra: Number(formData.costo_hora_mano_obra) || 20000,
+        modo_calculo: formData.modo_calculo || 'activo',
         notas: formData.notas.trim(),
         items: formData.items.map(it => ({
           receta_id: Number(it.receta_id),
           unidades_producidas: Number(it.unidades_producidas) || 1,
-          factor_dificultad: Number(it.factor_dificultad) || 1.0
+          factor_dificultad: Number(it.factor_dificultad) || 1.0,
+          tandas: Number(it.tandas) || 1.0
         }))
       };
 
+      let res;
       if (editingId) {
-        await api.updateSesion(editingId, payload);
+        res = await api.updateSesion(editingId, payload);
         onNotify('Sesión de producción actualizada con éxito', 'success');
       } else {
-        await api.createSesion(payload);
+        res = await api.createSesion(payload);
         onNotify('Sesión de producción y mano de obra guardada con éxito', 'success');
       }
       handleCloseModal();
-      cargarDatos();
+      await cargarDatos();
+      if (res) {
+        setSesionInforme(res);
+      }
     } catch (err) {
       onNotify(err.message, 'error');
     }
@@ -173,22 +189,37 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
     }
   };
 
-  // Cálculo en vivo del prorrateo
+  // Cálculo en vivo del prorrateo y desglose de tiempos
   const calcularProrrateoEnVivo = () => {
-    const horas = Number(formData.horas_trabajadas) || 0;
+    const horasTaller = Number(formData.horas_trabajadas) || 0;
     const valorHora = Number(formData.costo_hora_mano_obra) || 0;
-    const totalMO = horas * valorHora;
+    const totalMOTaller = horasTaller * valorHora;
+    const modo = formData.modo_calculo || 'activo';
 
-    let totalPonderado = 0;
+    let totalHorasActivas = 0;
+    let totalUnidades = 0;
+
     formData.items.forEach(it => {
-      totalPonderado += (Number(it.unidades_producidas) || 0) * (Number(it.factor_dificultad) || 1.0);
+      const rec = recetas.find(r => r.id === Number(it.receta_id));
+      const unidades = Number(it.unidades_producidas) || 1;
+      const tandas = Number(it.tandas) || 1;
+      const tiempoPrepMin = rec?.tiempo_preparacion_minutos || 30;
+      const tiempoActivoHs = (tiempoPrepMin / 60) * tandas;
+      totalHorasActivas += tiempoActivoHs;
+      totalUnidades += unidades;
     });
 
-    const costoPorUnidadPonderada = totalPonderado > 0 ? (totalMO / totalPonderado) : 0;
+    const totalMOActiva = totalHorasActivas * valorHora;
+    const horasPasivas = Math.max(0, horasTaller - totalHorasActivas);
+
     return {
-      totalMO: totalMO.toFixed(2),
-      totalPonderado: totalPonderado.toFixed(1),
-      costoPorUnidadPonderada: costoPorUnidadPonderada.toFixed(2)
+      horasTaller,
+      totalMOTaller,
+      totalHorasActivas,
+      totalMOActiva,
+      horasPasivas,
+      totalUnidades,
+      modo
     };
   };
 
@@ -204,15 +235,15 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
             <span>Mano de Obra & Ventana Temporal</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black">
-            Prorrateo de Horas entre Productos Reales
+            Prorrateo Inteligente de Horas y Costos Reales
           </h2>
           <p className="text-xs sm:text-sm text-amber-100 mt-2 leading-relaxed">
-            Si dedicas una ventana de 3 horas cobrando $20.000/hora ($60.000 en total) y en ese tiempo horneas cañoncitos y alfajores, el sistema divide el costo laboral exactamente entre todas las unidades producidas y guarda el histórico para futuras ventas.
+            Registra tu jornada de taller y lo que horneaste. El sistema separa automáticamente el <b>tiempo activo de batido</b> del tiempo de horneado o espera pasiva, generando un informe completo con precios unitarios reales y rentabilidad neta de la jornada.
           </p>
 
           <div className="mt-4 flex flex-wrap gap-3 items-center">
             <button
-              onClick={handleOpenModal}
+              onClick={() => handleOpenModal(null)}
               className="bg-white text-amber-700 hover:bg-amber-50 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center space-x-1.5"
             >
               {isAdmin ? <Plus className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5 text-amber-700" />}
@@ -239,7 +270,7 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
             <Clock className="w-12 h-12 mx-auto text-slate-300 mb-2" />
             <p className="text-slate-600 font-medium">No hay sesiones de producción registradas</p>
             <p className="text-xs text-slate-400 mt-1">
-              Haz clic en "Registrar Sesión de Trabajo" para prorratear tus horas entre lo que horneaste.
+              Haz clic en "Registrar Sesión de Trabajo" para calcular tus costos unitarios e informe de producción.
             </p>
           </div>
         ) : (
@@ -273,12 +304,20 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
 
                     <div className="flex items-center space-x-4 self-end sm:self-auto">
                       <div className="text-right">
-                        <span className="text-[10px] text-slate-400 block uppercase font-bold">Mano de Obra Total</span>
+                        <span className="text-[10px] text-slate-400 block uppercase font-bold">Mano de Obra Taller</span>
                         <span className="text-sm font-extrabold text-amber-700">
                           {sesion.horas_trabajadas}h @ ${sesion.costo_hora_mano_obra?.toLocaleString('es-AR')} = ${sesion.costo_total_mano_obra?.toLocaleString('es-AR')}
                         </span>
                       </div>
                       <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => setSesionInforme(sesion)}
+                          className="px-3 py-1.5 bg-amber-50 text-amber-800 hover:bg-amber-100 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 shadow-2xs mr-1"
+                          title="Ver informe financiero y de costos unitarios"
+                        >
+                          <FileText className="w-4 h-4 text-amber-600" />
+                          <span>Ver Informe</span>
+                        </button>
                         <button
                           onClick={() => handleOpenModal(sesion)}
                           className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
@@ -334,7 +373,7 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
                               ${item.costo_total_unitario.toFixed(2)}
                             </td>
                             <td className="py-2.5 text-right font-bold text-slate-800">
-                              ${item.costo_total_item.toLocaleString('es-AR')}
+                              ${item.costo_total_item?.toLocaleString('es-AR')}
                             </td>
                           </tr>
                         ))}
@@ -343,12 +382,18 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
                   </div>
 
                   {/* Resumen al pie de la sesión */}
-                  <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap justify-between items-center text-xs text-slate-500">
-                    <div>
-                      Total horneado: <b>{sesion.total_unidades_producidas} unidades</b>
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap justify-between items-center text-xs text-slate-500 gap-2">
+                    <div className="flex items-center space-x-2">
+                      <span>Total horneado: <b>{sesion.total_unidades_producidas} unidades</b></span>
+                      <button
+                        onClick={() => setSesionInforme(sesion)}
+                        className="text-amber-700 hover:text-amber-800 font-bold underline ml-2"
+                      >
+                        Abrir informe completo →
+                      </button>
                     </div>
                     <div className="text-right font-semibold text-slate-800">
-                      Costo total de producción de la hornada: <span className="text-sm font-black text-slate-900">${sesion.costo_total_sesion.toLocaleString('es-AR')}</span>
+                      Costo total de producción de la hornada: <span className="text-sm font-black text-slate-900">${sesion.costo_total_sesion?.toLocaleString('es-AR')}</span>
                     </div>
                   </div>
                 </div>
@@ -358,7 +403,7 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
         )}
       </div>
 
-      {/* Modal para Registrar Sesión */}
+      {/* Modal para Registrar o Editar Sesión */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/40 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-100 overflow-hidden my-6">
@@ -389,7 +434,7 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Horas Trabajadas</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Horas en Taller (Estadía)</label>
                   <input
                     type="number"
                     step="0.5"
@@ -414,6 +459,41 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
                 </div>
               </div>
 
+              {/* Modo de cálculo de mano de obra */}
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">Modo de Cálculo de Mano de Obra</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label className={`flex items-start space-x-2 p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${formData.modo_calculo === 'activo' ? 'bg-amber-50 border-amber-300 font-bold text-amber-900 shadow-2xs' : 'bg-white border-slate-200 text-slate-600'}`}>
+                    <input
+                      type="radio"
+                      name="modo_calculo"
+                      value="activo"
+                      checked={formData.modo_calculo === 'activo'}
+                      onChange={() => setFormData({ ...formData, modo_calculo: 'activo' })}
+                      className="mt-0.5 text-amber-600 focus:ring-amber-500"
+                    />
+                    <div>
+                      <span>Tiempo Activo de Tanda (Recomendado)</span>
+                      <p className="text-[10px] font-normal text-slate-500 mt-0.5">Calcula según el tiempo real de preparación por batida sin inflar costos con horas pasivas de horneado o espera.</p>
+                    </div>
+                  </label>
+                  <label className={`flex items-start space-x-2 p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${formData.modo_calculo === 'prorrateo' ? 'bg-amber-50 border-amber-300 font-bold text-amber-900 shadow-2xs' : 'bg-white border-slate-200 text-slate-600'}`}>
+                    <input
+                      type="radio"
+                      name="modo_calculo"
+                      value="prorrateo"
+                      checked={formData.modo_calculo === 'prorrateo'}
+                      onChange={() => setFormData({ ...formData, modo_calculo: 'prorrateo' })}
+                      className="mt-0.5 text-amber-600 focus:ring-amber-500"
+                    />
+                    <div>
+                      <span>Prorrateo 100% Horas Taller</span>
+                      <p className="text-[10px] font-normal text-slate-500 mt-0.5">Divide el costo de las horas completas del taller entre las unidades producidas.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               {/* Productos elaborados */}
               <div className="border-t border-slate-100 pt-3">
                 <div className="flex items-center justify-between mb-2">
@@ -431,57 +511,117 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
                 </div>
 
                 <div className="space-y-2">
-                  {formData.items.map((it, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
-                      <div className="flex-1">
-                        <select
-                          value={it.receta_id}
-                          onChange={(e) => handleUpdateItemRow(idx, 'receta_id', e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-xl bg-white outline-none"
-                        >
-                          {recetas.map(r => (
-                            <option key={r.id} value={r.id}>{r.nombre}</option>
-                          ))}
-                        </select>
-                      </div>
+                  {formData.items.map((it, idx) => {
+                    const rec = recetas.find(r => r.id === Number(it.receta_id));
+                    const tiempoRecetaMin = rec?.tiempo_preparacion_minutos || 30;
+                    const tandas = Number(it.tandas) || 1;
+                    const unidades = Number(it.unidades_producidas) || 1;
+                    const tiempoActivoHs = (tiempoRecetaMin / 60) * tandas;
+                    const moActivaUnit = (tiempoActivoHs * (Number(formData.costo_hora_mano_obra) || 20000)) / unidades;
 
-                      <div className="w-24">
-                        <input
-                          type="number"
-                          step="1"
-                          min="1"
-                          placeholder="Unidades"
-                          value={it.unidades_producidas}
-                          onChange={(e) => handleUpdateItemRow(idx, 'unidades_producidas', e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-xl bg-white font-bold text-slate-800 outline-none text-center"
-                        />
-                      </div>
+                    return (
+                      <div key={idx} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Producto</label>
+                            <select
+                              value={it.receta_id}
+                              onChange={(e) => handleUpdateItemRow(idx, 'receta_id', e.target.value)}
+                              className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-xl bg-white outline-none font-semibold text-slate-800"
+                            >
+                              {recetas.map(r => (
+                                <option key={r.id} value={r.id}>{r.nombre}</option>
+                              ))}
+                            </select>
+                          </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItemRow(idx)}
-                        className="text-slate-400 hover:text-rose-600 p-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                          <div className="w-24">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1 text-center">Unidades</label>
+                            <input
+                              type="number"
+                              step="1"
+                              min="1"
+                              placeholder="Unidades"
+                              value={it.unidades_producidas}
+                              onChange={(e) => handleUpdateItemRow(idx, 'unidades_producidas', e.target.value)}
+                              className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-xl bg-white font-bold text-slate-800 outline-none text-center"
+                            />
+                          </div>
+
+                          <div className="w-24">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1 text-center">Tandas</label>
+                            <input
+                              type="number"
+                              step="0.5"
+                              min="0.5"
+                              placeholder="Tandas"
+                              value={it.tandas || 1}
+                              onChange={(e) => handleUpdateItemRow(idx, 'tandas', e.target.value)}
+                              className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-xl bg-white font-bold text-amber-800 outline-none text-center"
+                              title="1 tanda = batida única en lote (no multiplica el tiempo por unidad)"
+                            />
+                          </div>
+
+                          <div className="pt-5">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItemRow(idx)}
+                              className="text-slate-400 hover:text-rose-600 p-1.5 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="Quitar producto"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Detalle en vivo por producto */}
+                        <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-200/50">
+                          <span>
+                            Receta base: <b>{tiempoRecetaMin} min</b> · {tandas} tanda(s) = <b>{Math.round(tiempoRecetaMin * tandas)} min activos</b>
+                          </span>
+                          <span className="font-bold text-amber-800">
+                            Mano de obra activa est.: <b>${moActivaUnit.toFixed(2)} / u</b>
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Caja de cálculo del prorrateo en vivo */}
-              <div className="bg-amber-50 p-3.5 rounded-2xl border border-amber-200/60 text-xs space-y-1">
-                <div className="flex justify-between text-amber-900 font-semibold">
-                  <span>Costo total de mano de obra de la sesión:</span>
-                  <span>${Number(prorrateo.totalMO).toLocaleString('es-AR')}</span>
+              <div className="bg-amber-50/80 p-4 rounded-2xl border border-amber-200/70 text-xs space-y-2">
+                <div className="flex justify-between text-amber-900 font-bold">
+                  <span>Horas de Taller declaradas:</span>
+                  <span>{prorrateo.horasTaller} hs (${Number(prorrateo.totalMOTaller).toLocaleString('es-AR')})</span>
                 </div>
                 <div className="flex justify-between text-amber-800">
-                  <span>Unidades producidas totales:</span>
-                  <span>{prorrateo.totalPonderado} unidades</span>
+                  <span>Tiempo activo total de preparación:</span>
+                  <span>{prorrateo.totalHorasActivas.toFixed(1)} hs ({Math.round(prorrateo.totalHorasActivas * 60)} min)</span>
                 </div>
-                <div className="flex justify-between text-amber-900 font-black pt-1 border-t border-amber-200/60 text-sm">
-                  <span>Mano de obra asignada por unidad:</span>
-                  <span>${Number(prorrateo.costoPorUnidadPonderada).toLocaleString('es-AR')} / u</span>
+                <div className="flex justify-between text-slate-600">
+                  <span>Tiempo pasivo (horno / reposo / espera):</span>
+                  <span>{prorrateo.horasPasivas.toFixed(1)} hs ({Math.round(prorrateo.horasPasivas * 60)} min)</span>
+                </div>
+                <div className="pt-2 border-t border-amber-200/70 space-y-1">
+                  <div className="flex justify-between text-amber-950 font-black text-sm">
+                    <span>
+                      {formData.modo_calculo === 'activo' ? 'Mano de obra activa asignada:' : 'Mano de obra prorrateada 100%:'}
+                    </span>
+                    <span>
+                      ${Number(formData.modo_calculo === 'activo' ? prorrateo.totalMOActiva : prorrateo.totalMOTaller).toLocaleString('es-AR')}
+                    </span>
+                  </div>
+                  {formData.modo_calculo === 'activo' && prorrateo.horasPasivas > 2 && (
+                    <p className="text-[11px] text-amber-800 italic">
+                      ✨ Tu producto no se encarece por las {prorrateo.horasPasivas.toFixed(1)} hs de espera o cocción; mantiene un costo unitario justo y competitivo.
+                    </p>
+                  )}
+                  {formData.modo_calculo === 'prorrateo' && (
+                    <p className="text-[11px] text-rose-700 font-semibold">
+                      ⚠️ Advertencia: Estás absorbiendo las {prorrateo.horasTaller} hs completas en {prorrateo.totalUnidades} unidades, lo que inflará significativamente el costo unitario.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -514,6 +654,14 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal de Informe de Producción */}
+      {sesionInforme && (
+        <InformeProduccionModal
+          sesion={sesionInforme}
+          onClose={() => setSesionInforme(null)}
+        />
       )}
     </div>
   );

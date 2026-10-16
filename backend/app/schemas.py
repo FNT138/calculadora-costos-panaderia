@@ -117,12 +117,14 @@ class SesionItemInput(BaseModel):
     receta_id: int
     unidades_producidas: float = Field(..., gt=0, example=40.0)
     factor_dificultad: float = Field(default=1.0, gt=0, example=1.0)
+    tandas: Optional[float] = Field(default=1.0, gt=0, example=1.0)
 
 class SesionCreate(BaseModel):
     titulo: str = Field(..., example="Horneada del Sábado Mañana")
     fecha: Optional[datetime] = None
     horas_trabajadas: float = Field(..., gt=0, example=3.0)
     costo_hora_mano_obra: Optional[float] = Field(default=None, example=20000.0)
+    modo_calculo: Optional[str] = Field(default="activo", example="activo")
     notas: Optional[str] = None
     items: List[SesionItemInput] = []
 
@@ -132,12 +134,18 @@ class SesionItemOut(BaseModel):
     receta_nombre: str
     unidades_producidas: float
     factor_dificultad: float
+    tandas: Optional[float] = 1.0
+    tiempo_activo_minutos: Optional[float] = 0.0
     costo_mano_obra_unitario: float
     costo_ingredientes_unitario: float
     costo_packaging_unitario: float
     costo_indirectos_unitario: float
     costo_total_unitario: float
     costo_total_item: float
+    precio_sugerido_unitario: Optional[float] = 0.0
+    precio_venta_fijado: Optional[float] = None
+    margen_ganancia_sugerido: Optional[float] = 60.0
+    ganancia_unitaria_sugerida: Optional[float] = 0.0
 
     class Config:
         from_attributes = True
@@ -149,6 +157,13 @@ class SesionOut(BaseModel):
     horas_trabajadas: float
     costo_hora_mano_obra: float
     costo_total_mano_obra: float
+    horas_activas: Optional[float] = 0.0
+    costo_mano_obra_activa: Optional[float] = 0.0
+    inversion_ingredientes: Optional[float] = 0.0
+    inversion_packaging: Optional[float] = 0.0
+    inversion_total_insumos: Optional[float] = 0.0
+    ingreso_estimado_sugerido: Optional[float] = 0.0
+    ganancia_neta_estimada: Optional[float] = 0.0
     notas: Optional[str] = None
     items: List[SesionItemOut] = []
     costo_total_sesion: float

@@ -19,7 +19,12 @@ frontend/.pnp.js
 
 # Logs y bases temporales
 *.log
+*.json_backup
+*_live.json
+backup_*.json
+*.pdf
 
 # Archivos del sistema
 .DS_Store
 Thumbs.db
+
