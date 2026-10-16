@@ -30,6 +30,18 @@ try:
             import_dict_to_db(db, backup_data)
             print("Base de datos inicializada desde data/db_backup.json")
     seed_database()
+    
+    # 3. Sincronizar secuencias seriales de PostgreSQL para evitar error de duplicate key
+    if db.bind and db.bind.dialect.name == "postgresql":
+        from sqlalchemy import text
+        for tbl in ["insumos", "recetas", "receta_ingredientes", "sesiones_produccion", "sesion_produccion_items"]:
+            try:
+                db.execute(text(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), coalesce(max(id), 0) + 1, false) FROM {tbl};"))
+                db.commit()
+            except Exception as seq_err:
+                db.rollback()
+                print(f"Aviso sync secuencia {tbl}: {seq_err}")
+                
     db.close()
 except Exception as e:
     print(f"Aviso durante inicio y seed: {e}")

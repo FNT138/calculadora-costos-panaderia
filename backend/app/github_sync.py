@@ -214,6 +214,17 @@ def import_dict_to_db(db: Session, data: dict):
                     ))
 
         db.commit()
+        
+        # Sincronizar secuencias seriales en PostgreSQL
+        if db.bind and db.bind.dialect.name == "postgresql":
+            from sqlalchemy import text
+            for tbl in ["insumos", "recetas", "receta_ingredientes", "sesiones_produccion", "sesion_produccion_items"]:
+                try:
+                    db.execute(text(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), coalesce(max(id), 0) + 1, false) FROM {tbl};"))
+                    db.commit()
+                except Exception:
+                    db.rollback()
+
         return True
     except Exception as e:
         db.rollback()
