@@ -18,8 +18,8 @@ class Insumo(Base):
     notas = Column(Text, nullable=True)
     fecha_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relación con recetas
-    receta_items = relationship("RecetaIngrediente", back_populates="insumo", cascade="all, delete-orphan")
+    # Relación con recetas - cascada completa
+    receta_items = relationship("RecetaIngrediente", back_populates="insumo", cascade="all, delete-orphan", passive_deletes=True)
 
     def calcular_costo_base(self):
         """Calcula el costo por unidad base (gramo, ml o unidad) considerando merma."""
@@ -68,8 +68,9 @@ class Receta(Base):
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
     fecha_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    ingredientes = relationship("RecetaIngrediente", back_populates="receta", cascade="all, delete-orphan")
-    producciones = relationship("SesionProduccionItem", back_populates="receta")
+    # Cascadas para permitir borrado limpio sin errores de clave foránea
+    ingredientes = relationship("RecetaIngrediente", back_populates="receta", cascade="all, delete-orphan", passive_deletes=True)
+    producciones = relationship("SesionProduccionItem", back_populates="receta", cascade="all, delete-orphan", passive_deletes=True)
 
 
 class RecetaIngrediente(Base):
@@ -77,7 +78,7 @@ class RecetaIngrediente(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     receta_id = Column(Integer, ForeignKey("recetas.id", ondelete="CASCADE"), nullable=False)
-    insumo_id = Column(Integer, ForeignKey("insumos.id", ondelete="RESTRICT"), nullable=False)
+    insumo_id = Column(Integer, ForeignKey("insumos.id", ondelete="CASCADE"), nullable=False)
     cantidad = Column(Float, nullable=False) # Cantidad expresada en la unidad_base del insumo
     notas = Column(String(150), nullable=True)
 
@@ -96,7 +97,7 @@ class SesionProduccion(Base):
     costo_total_mano_obra = Column(Float, nullable=False, default=20000.0)
     notas = Column(Text, nullable=True)
 
-    items = relationship("SesionProduccionItem", back_populates="sesion", cascade="all, delete-orphan")
+    items = relationship("SesionProduccionItem", back_populates="sesion", cascade="all, delete-orphan", passive_deletes=True)
 
 
 class SesionProduccionItem(Base):
@@ -104,7 +105,8 @@ class SesionProduccionItem(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     sesion_id = Column(Integer, ForeignKey("sesiones_produccion.id", ondelete="CASCADE"), nullable=False)
-    receta_id = Column(Integer, ForeignKey("recetas.id", ondelete="RESTRICT"), nullable=False)
+    # Permite borrar receta sin violar restricción NOT NULL
+    receta_id = Column(Integer, ForeignKey("recetas.id", ondelete="CASCADE"), nullable=True)
     unidades_producidas = Column(Float, nullable=False) # Cantidad obtenida en esta sesión
     factor_dificultad = Column(Float, nullable=False, default=1.0) # Ponderador de esfuerzo (1.0 = normal)
     

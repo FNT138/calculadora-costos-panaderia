@@ -141,4 +141,31 @@ export const api = {
     });
     return handleResponse(res);
   },
+
+  // Respaldos y Persistencia
+  async getBackupStatus() {
+    const res = await fetch(`${API_BASE}/backup/status`);
+    return handleResponse(res);
+  },
+
+  async syncGithub() {
+    const res = await fetch(`${API_BASE}/backup/sync-github`, {
+      method: 'POST'
+    });
+    return handleResponse(res);
+  },
+
+  async importBackup(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE}/backup/import`, {
+      method: 'POST',
+      body: formData
+    });
+    return handleResponse(res);
+  },
+
+  exportBackupUrl() {
+    return `${API_BASE}/backup/export`;
+  }
 };

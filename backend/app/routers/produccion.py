@@ -6,6 +6,7 @@ from ..database import get_db
 from ..models import SesionProduccion, SesionProduccionItem, Receta
 from ..schemas import SesionCreate, SesionOut, SesionItemOut
 from ..calculos import calcular_desglose_receta, get_config_val
+from ..github_sync import trigger_auto_sync
 
 router = APIRouter(prefix="/api/produccion", tags=["Sesiones de Producción y Mano de Obra"])
 
@@ -116,6 +117,7 @@ def registrar_sesion_produccion(sesion_in: SesionCreate, db: Session = Depends(g
 
     db.commit()
     db.refresh(nueva_sesion)
+    trigger_auto_sync(db)
     return format_sesion_out(nueva_sesion)
 
 @router.get("/{sesion_id}", response_model=SesionOut)
@@ -132,4 +134,5 @@ def eliminar_sesion(sesion_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Sesión no encontrada")
     db.delete(sesion)
     db.commit()
+    trigger_auto_sync(db)
     return None

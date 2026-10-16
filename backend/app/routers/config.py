@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Configuracion, Insumo, Receta, SesionProduccion
 from ..schemas import ConfiguracionUpdate
+from ..github_sync import trigger_auto_sync
 
 router = APIRouter(prefix="/api/configuracion", tags=["Configuración y Resumen"])
 
@@ -52,4 +53,5 @@ def actualizar_configuracion(cfg_in: ConfiguracionUpdate, db: Session = Depends(
             db.add(Configuracion(clave="porcentaje_servicios_defecto", valor=str(cfg_in.porcentaje_servicios_defecto)))
 
     db.commit()
+    trigger_auto_sync(db)
     return obtener_configuracion(db)

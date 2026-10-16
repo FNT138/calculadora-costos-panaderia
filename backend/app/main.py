@@ -5,16 +5,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from .database import engine, Base
+from .database import engine, Base, SessionLocal
 from .seed import seed_database
-from .routers import insumos, recetas, produccion, simulador, config
+from .github_sync import pull_backup_from_github
+from .routers import insumos, recetas, produccion, simulador, config, backup
 
-# Inicialización de tablas y seed
+# Inicialización de tablas y restauración de datos
 Base.metadata.create_all(bind=engine)
 try:
+    db = SessionLocal()
+    # Si GitHub Sync está configurado, restauramos el último respaldo del repo
+    if os.getenv("GITHUB_TOKEN") and os.getenv("GITHUB_REPO"):
+        pull_backup_from_github(db)
     seed_database()
+    db.close()
 except Exception as e:
-    print(f"Aviso durante seed: {e}")
+    print(f"Aviso durante inicio y seed: {e}")
 
 app = FastAPI(
     title="Panadería Costos & Maximización de Precios",
@@ -37,6 +43,7 @@ app.include_router(recetas.router)
 app.include_router(produccion.router)
 app.include_router(simulador.router)
 app.include_router(config.router)
+app.include_router(backup.router)
 
 @app.get("/api/health")
 def health():

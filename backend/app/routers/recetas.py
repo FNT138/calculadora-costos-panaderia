@@ -5,6 +5,7 @@ from ..database import get_db
 from ..models import Receta, RecetaIngrediente, Insumo, SesionProduccionItem
 from ..schemas import RecetaCreate, RecetaUpdate, RecetaOut, RecetaIngredienteOut
 from ..calculos import calcular_desglose_receta, get_config_val
+from ..github_sync import trigger_auto_sync
 
 router = APIRouter(prefix="/api/recetas", tags=["Recetas y Costos"])
 
@@ -91,6 +92,7 @@ def crear_receta(receta_in: RecetaCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(nueva)
     valor_hora = get_config_val(db, "costo_hora_defecto", 20000.0)
+    trigger_auto_sync(db)
     return format_receta_out(nueva, valor_hora)
 
 @router.get("/{receta_id}", response_model=RecetaOut)
@@ -132,6 +134,7 @@ def actualizar_receta(receta_id: int, receta_in: RecetaUpdate, db: Session = Dep
     db.commit()
     db.refresh(receta)
     valor_hora = get_config_val(db, "costo_hora_defecto", 20000.0)
+    trigger_auto_sync(db)
     return format_receta_out(receta, valor_hora)
 
 @router.delete("/{receta_id}", status_code=204)
@@ -141,12 +144,13 @@ def eliminar_receta(receta_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Receta no encontrada")
     
     # 1. Eliminar referencias en sesiones de producción para evitar error 500 por Foreign Key
-    db.query(SesionProduccionItem).filter(SesionProduccionItem.receta_id == receta.id).delete()
+    db.query(SesionProduccionItem).filter(SesionProduccionItem.receta_id == receta.id).delete(synchronize_session=False)
     
     # 2. Eliminar ingredientes de la receta
-    db.query(RecetaIngrediente).filter(RecetaIngrediente.receta_id == receta.id).delete()
+    db.query(RecetaIngrediente).filter(RecetaIngrediente.receta_id == receta.id).delete(synchronize_session=False)
     
     # 3. Eliminar la receta
     db.delete(receta)
     db.commit()
+    trigger_auto_sync(db)
     return None

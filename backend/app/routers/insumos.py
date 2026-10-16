@@ -2,8 +2,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Insumo
+from ..models import Insumo, RecetaIngrediente
 from ..schemas import InsumoCreate, InsumoUpdate, InsumoOut
+from ..github_sync import trigger_auto_sync
 
 router = APIRouter(prefix="/api/insumos", tags=["Insumos y Packaging"])
 
@@ -19,7 +20,6 @@ def listar_insumos(
     if buscar:
         query = query.filter(Insumo.nombre.ilike(f"%{buscar}%"))
     insumos = query.order_by(Insumo.categoria.asc(), Insumo.nombre.asc()).all()
-    # Garantizar cálculo actualizado
     for ins in insumos:
         if ins.costo_por_unidad_base <= 0:
             ins.calcular_costo_base()
@@ -40,6 +40,7 @@ def crear_insumo(insumo_in: InsumoCreate, db: Session = Depends(get_db)):
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
+    trigger_auto_sync(db)
     return nuevo
 
 @router.get("/{insumo_id}", response_model=InsumoOut)
@@ -67,6 +68,7 @@ def actualizar_insumo(insumo_id: int, insumo_in: InsumoUpdate, db: Session = Dep
     ins.calcular_costo_base()
     db.commit()
     db.refresh(ins)
+    trigger_auto_sync(db)
     return ins
 
 @router.delete("/{insumo_id}", status_code=204)
@@ -75,14 +77,10 @@ def eliminar_insumo(insumo_id: int, db: Session = Depends(get_db)):
     if not ins:
         raise HTTPException(status_code=404, detail="Insumo no encontrado")
     
-    # Comprobar si está siendo usado en recetas
-    if ins.receta_items:
-        recetas_nombres = ", ".join([ri.receta.nombre for ri in ins.receta_items if ri.receta])
-        raise HTTPException(
-            status_code=400,
-            detail=f"No se puede eliminar el insumo '{ins.nombre}' porque se usa en las recetas: {recetas_nombres}."
-        )
+    # Eliminar cualquier uso del insumo en ingredientes de recetas para evitar errores
+    db.query(RecetaIngrediente).filter(RecetaIngrediente.insumo_id == ins.id).delete(synchronize_session=False)
 
     db.delete(ins)
     db.commit()
+    trigger_auto_sync(db)
     return None
