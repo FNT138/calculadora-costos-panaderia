@@ -437,8 +437,8 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Horas en Taller (Estadía)</label>
                   <input
                     type="number"
-                    step="0.5"
-                    min="0.1"
+                    step="any"
+                    min="0"
                     required
                     value={formData.horas_trabajadas}
                     onChange={(e) => setFormData({ ...formData, horas_trabajadas: e.target.value })}
@@ -449,7 +449,7 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Valor por Hora ($)</label>
                   <input
                     type="number"
-                    step="100"
+                    step="any"
                     min="0"
                     required
                     value={formData.costo_hora_mano_obra}
@@ -539,8 +539,8 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
                             <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1 text-center">Unidades</label>
                             <input
                               type="number"
-                              step="1"
-                              min="1"
+                              step="any"
+                              min="0.1"
                               placeholder="Unidades"
                               value={it.unidades_producidas}
                               onChange={(e) => handleUpdateItemRow(idx, 'unidades_producidas', e.target.value)}
@@ -552,8 +552,8 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
                             <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1 text-center">Tandas</label>
                             <input
                               type="number"
-                              step="0.5"
-                              min="0.5"
+                              step="any"
+                              min="0.1"
                               placeholder="Tandas"
                               value={it.tandas || 1}
                               onChange={(e) => handleUpdateItemRow(idx, 'tandas', e.target.value)}
