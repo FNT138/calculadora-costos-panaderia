@@ -4,27 +4,30 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from ..database import get_db, DATABASE_URL
+from ..database import get_db, engine, DATABASE_URL
 from ..github_sync import export_db_to_dict, import_dict_to_db, push_backup_to_github, pull_backup_from_github
 
 router = APIRouter(prefix="/api/backup", tags=["Respaldos y Persistencia"])
 
 @router.get("/status")
 def estado_persistencia():
-    has_postgres = bool(DATABASE_URL and not DATABASE_URL.startswith("sqlite"))
-    has_turso = bool(os.getenv("TURSO_DATABASE_URL"))
+    dialect_name = engine.dialect.name
     has_github_sync = bool(os.getenv("GITHUB_TOKEN") and os.getenv("GITHUB_REPO"))
     
-    if has_turso:
+    if dialect_name == "postgresql":
+        motor = "PostgreSQL (Neon / Cloud Permanente)"
+        es_permanente = True
+    elif "libsql" in str(engine.url):
         motor = "Turso (libSQL Cloud - Permanente)"
-    elif has_postgres:
-        motor = "PostgreSQL (Nube permanente)"
+        es_permanente = True
     else:
         motor = "SQLite Local"
+        es_permanente = has_github_sync
         
     return {
         "motor_base_datos": motor,
-        "es_permanente": has_postgres or has_turso or has_github_sync,
+        "dialecto": dialect_name,
+        "es_permanente": es_permanente,
         "github_sync_activo": has_github_sync,
         "github_repo": os.getenv("GITHUB_REPO") if has_github_sync else None
     }
