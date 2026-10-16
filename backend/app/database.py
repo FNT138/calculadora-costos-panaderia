@@ -10,10 +10,22 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 engine = None
 
 if DATABASE_URL:
-    # Render, Neon.tech, Supabase (PostgreSQL 100% permanente y compatible con Python 3.14)
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    engine = create_engine(DATABASE_URL)
+    # Render, Neon.tech, Supabase (PostgreSQL 100% permanente)
+    url = DATABASE_URL
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    
+    # 1. Intentamos con el driver estándar (psycopg 3 o el configurado)
+    try:
+        engine = create_engine(url)
+    except Exception as e1:
+        print(f"Aviso: Fallo inicial de driver PostgreSQL ({e1}), intentando con postgresql+psycopg2://...")
+        try:
+            url_p2 = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+            engine = create_engine(url_p2)
+        except Exception as e2:
+            print(f"Error conectando a PostgreSQL ({e2}). Usando SQLite local.")
+            engine = None
 elif TURSO_DATABASE_URL:
     try:
         url = TURSO_DATABASE_URL
