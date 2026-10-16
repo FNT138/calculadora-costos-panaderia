@@ -9,11 +9,12 @@ import {
   Sparkles, 
   X,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Lock
 } from 'lucide-react';
 import { api } from '../api';
 
-export default function ProduccionView({ onNotify }) {
+export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
   const [sesiones, setSesiones] = useState([]);
   const [recetas, setRecetas] = useState([]);
   const [config, setConfig] = useState(null);
@@ -52,6 +53,10 @@ export default function ProduccionView({ onNotify }) {
   }, []);
 
   const handleOpenModal = () => {
+    if (!isAdmin) {
+      if (onRequirePin) onRequirePin();
+      return;
+    }
     const valorHora = config ? config.costo_hora_defecto : 20000.0;
     setFormData({
       titulo: 'Hornada del día',
@@ -130,6 +135,10 @@ export default function ProduccionView({ onNotify }) {
   };
 
   const handleDelete = async (id, titulo) => {
+    if (!isAdmin) {
+      if (onRequirePin) onRequirePin();
+      return;
+    }
     if (!window.confirm(`¿Estás seguro de eliminar el registro de la sesión '${titulo}'?`)) return;
     try {
       await api.deleteSesion(id);
@@ -182,7 +191,7 @@ export default function ProduccionView({ onNotify }) {
               onClick={handleOpenModal}
               className="bg-white text-amber-700 hover:bg-amber-50 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center space-x-1.5"
             >
-              <Plus className="w-4 h-4" />
+              {isAdmin ? <Plus className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5 text-amber-700" />}
               <span>Registrar Sesión de Trabajo</span>
             </button>
             <span className="text-xs text-amber-100">

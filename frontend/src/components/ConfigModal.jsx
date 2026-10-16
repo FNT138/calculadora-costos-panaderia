@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, X, Save, Clock, Percent, Flame, Download, Upload, RefreshCw, Database, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Settings, X, Save, Clock, Percent, Flame, Download, Upload, RefreshCw, Database, ShieldCheck, AlertCircle, Lock, Key } from 'lucide-react';
 import { api } from '../api';
 
-export default function ConfigModal({ isOpen, onClose, onNotify, onSaved }) {
+export default function ConfigModal({ isOpen, onClose, onNotify, onSaved, isAdmin, onRequirePin }) {
   const [formData, setFormData] = useState({
     costo_hora_defecto: 20000,
     margen_defecto: 60,
@@ -41,6 +41,10 @@ export default function ConfigModal({ isOpen, onClose, onNotify, onSaved }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isAdmin) {
+      if (onRequirePin) onRequirePin();
+      return;
+    }
     try {
       setLoading(true);
       await api.updateConfig({
@@ -63,6 +67,10 @@ export default function ConfigModal({ isOpen, onClose, onNotify, onSaved }) {
   };
 
   const handleFileChange = async (e) => {
+    if (!isAdmin) {
+      if (onRequirePin) onRequirePin();
+      return;
+    }
     const file = e.target.files[0];
     if (!file) return;
 
@@ -81,6 +89,10 @@ export default function ConfigModal({ isOpen, onClose, onNotify, onSaved }) {
   };
 
   const handleSyncGithub = async () => {
+    if (!isAdmin) {
+      if (onRequirePin) onRequirePin();
+      return;
+    }
     try {
       setSyncingGithub(true);
       const res = await api.syncGithub();
@@ -247,6 +259,30 @@ export default function ConfigModal({ isOpen, onClose, onNotify, onSaved }) {
             )}
           </div>
 
+          {/* Sección de Seguridad y PIN */}
+          <div className="pt-3 border-t border-slate-100 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Key className="w-4 h-4 text-amber-600" />
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Seguridad & Acceso
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={onRequirePin}
+                className="text-xs text-amber-700 hover:text-amber-800 font-semibold hover:underline"
+              >
+                {isAdmin ? 'Cambiar PIN Maestro' : 'Desbloquear con PIN'}
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              {isAdmin
+                ? 'El modo edición está habilitado en este navegador. Puedes cambiar tu PIN de panadería cuando desees.'
+                : 'Estás en modo solo lectura. Desbloquea con tu PIN para poder guardar cambios en tus recetas y ajustes.'}
+            </p>
+          </div>
+
           <div className="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
             <button
               type="button"
@@ -260,7 +296,7 @@ export default function ConfigModal({ isOpen, onClose, onNotify, onSaved }) {
               disabled={loading}
               className="px-5 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-sm transition-all flex items-center space-x-1.5"
             >
-              <Save className="w-4 h-4" />
+              {isAdmin ? <Save className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5 text-amber-200" />}
               <span>{loading ? 'Guardando...' : 'Guardar Ajustes'}</span>
             </button>
           </div>

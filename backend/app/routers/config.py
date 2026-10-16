@@ -5,6 +5,7 @@ from ..database import get_db
 from ..models import Configuracion, Insumo, Receta, SesionProduccion
 from ..schemas import ConfiguracionUpdate
 from ..github_sync import trigger_auto_sync
+from .auth import require_admin
 
 router = APIRouter(prefix="/api/configuracion", tags=["Configuración y Resumen"])
 
@@ -29,7 +30,7 @@ def obtener_configuracion(db: Session = Depends(get_db)) -> Dict[str, Any]:
         }
     }
 
-@router.put("")
+@router.put("", dependencies=[Depends(require_admin)])
 def actualizar_configuracion(cfg_in: ConfiguracionUpdate, db: Session = Depends(get_db)):
     if cfg_in.costo_hora_defecto is not None:
         c = db.query(Configuracion).filter(Configuracion.clave == "costo_hora_defecto").first()

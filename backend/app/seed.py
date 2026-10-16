@@ -17,6 +17,7 @@ def seed_database():
             ("costo_hora_defecto", "20000.0", "Valor hora de trabajo deseado en ARS"),
             ("margen_defecto", "60.0", "Margen de ganancia objetivo por defecto (%)"),
             ("porcentaje_servicios_defecto", "10.0", "Porcentaje para gas, luz y desgaste (%)"),
+            ("admin_pin", "1234", "PIN de seguridad para habilitar edición de recetas e insumos"),
         ]
         for k, v, d in configs:
             if not db.query(Configuracion).filter(Configuracion.clave == k).first():

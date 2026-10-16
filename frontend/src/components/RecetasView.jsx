@@ -15,11 +15,12 @@ import {
   DollarSign,
   ChevronRight,
   Flame,
-  AlertCircle
+  AlertCircle,
+  Lock
 } from 'lucide-react';
 import { api } from '../api';
 
-export default function RecetasView({ onNotify, onSelectParaSimulador }) {
+export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, onRequirePin }) {
   const [recetas, setRecetas] = useState([]);
   const [insumos, setInsumos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -69,6 +70,10 @@ export default function RecetasView({ onNotify, onSelectParaSimulador }) {
   }, [busqueda, filtroCategoria]);
 
   const handleOpenModal = (receta = null) => {
+    if (!isAdmin) {
+      if (onRequirePin) onRequirePin();
+      return;
+    }
     if (receta) {
       setEditingId(receta.id);
       setFormData({
@@ -180,6 +185,10 @@ export default function RecetasView({ onNotify, onSelectParaSimulador }) {
   };
 
   const handleDelete = async (id, nombre) => {
+    if (!isAdmin) {
+      if (onRequirePin) onRequirePin();
+      return;
+    }
     if (!window.confirm(`¿Estás seguro de eliminar la receta '${nombre}'?`)) return;
     try {
       await api.deleteReceta(id);
@@ -254,7 +263,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador }) {
           onClick={() => handleOpenModal()}
           className="flex items-center justify-center space-x-1.5 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all"
         >
-          <Plus className="w-4 h-4" />
+          {isAdmin ? <Plus className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5 text-amber-200" />}
           <span>Nueva Receta</span>
         </button>
       </div>

@@ -10,7 +10,7 @@ from .database import engine, Base, SessionLocal
 from .models import Insumo
 from .seed import seed_database
 from .github_sync import pull_backup_from_github, import_dict_to_db
-from .routers import insumos, recetas, produccion, simulador, config, backup
+from .routers import insumos, recetas, produccion, simulador, config, backup, auth
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -68,6 +68,7 @@ app.include_router(produccion.router)
 app.include_router(simulador.router)
 app.include_router(config.router)
 app.include_router(backup.router)
+app.include_router(auth.router)
 
 @app.get("/api/health")
 def health():

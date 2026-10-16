@@ -7,6 +7,7 @@ from ..models import SesionProduccion, SesionProduccionItem, Receta
 from ..schemas import SesionCreate, SesionOut, SesionItemOut
 from ..calculos import calcular_desglose_receta, get_config_val
 from ..github_sync import trigger_auto_sync
+from .auth import require_admin
 
 router = APIRouter(prefix="/api/produccion", tags=["Sesiones de Producción y Mano de Obra"])
 
@@ -60,7 +61,7 @@ def listar_sesiones(db: Session = Depends(get_db)):
     )
     return [format_sesion_out(s) for s in sesiones]
 
-@router.post("", response_model=SesionOut, status_code=201)
+@router.post("", response_model=SesionOut, status_code=201, dependencies=[Depends(require_admin)])
 def registrar_sesion_produccion(sesion_in: SesionCreate, db: Session = Depends(get_db)):
     if not sesion_in.items:
         raise HTTPException(status_code=400, detail="Debe incluir al menos un producto elaborado en la sesión")
@@ -134,7 +135,7 @@ def obtener_sesion(sesion_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Sesión no encontrada")
     return format_sesion_out(sesion)
 
-@router.delete("/{sesion_id}", status_code=204)
+@router.delete("/{sesion_id}", status_code=204, dependencies=[Depends(require_admin)])
 def eliminar_sesion(sesion_id: int, db: Session = Depends(get_db)):
     sesion = db.query(SesionProduccion).filter(SesionProduccion.id == sesion_id).first()
     if not sesion:

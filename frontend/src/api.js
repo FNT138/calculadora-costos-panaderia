@@ -1,4 +1,37 @@
 const API_BASE = '/api';
+const TOKEN_KEY = 'admin_pin_token';
+
+export function getAdminToken() {
+  return localStorage.getItem(TOKEN_KEY) || '';
+}
+
+export function setAdminToken(token) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+    window.dispatchEvent(new CustomEvent('admin-auth-changed', { detail: { isAdmin: true } }));
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+    window.dispatchEvent(new CustomEvent('admin-auth-changed', { detail: { isAdmin: false } }));
+  }
+}
+
+export function clearAdminToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  window.dispatchEvent(new CustomEvent('admin-auth-changed', { detail: { isAdmin: false } }));
+}
+
+export function hasAdminToken() {
+  return Boolean(localStorage.getItem(TOKEN_KEY));
+}
+
+function getAuthHeaders(extraHeaders = {}) {
+  const token = getAdminToken();
+  const headers = { ...extraHeaders };
+  if (token) {
+    headers['X-Admin-Token'] = token;
+  }
+  return headers;
+}
 
 async function handleResponse(response) {
   if (!response.ok) {
@@ -11,6 +44,12 @@ async function handleResponse(response) {
     } catch (e) {
       // Usar mensaje por defecto
     }
+
+    if (response.status === 401) {
+      clearAdminToken();
+      window.dispatchEvent(new CustomEvent('admin-auth-required', { detail: { message: errorMsg } }));
+    }
+
     throw new Error(errorMsg);
   }
   if (response.status === 204) {
@@ -20,6 +59,55 @@ async function handleResponse(response) {
 }
 
 export const api = {
+  // Autenticación por PIN
+  async loginPin(pin) {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin }),
+    });
+    const data = await handleResponse(res);
+    if (data && data.token) {
+      setAdminToken(data.token);
+    }
+    return data;
+  },
+
+  async verifyAuth() {
+    const token = getAdminToken();
+    if (!token) return { authenticated: false };
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify`, {
+        headers: getAuthHeaders(),
+      });
+      const data = await handleResponse(res);
+      if (!data.authenticated) {
+        clearAdminToken();
+      }
+      return data;
+    } catch {
+      clearAdminToken();
+      return { authenticated: false };
+    }
+  },
+
+  async changePin(currentPin, newPin) {
+    const res = await fetch(`${API_BASE}/auth/change-pin`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ current_pin: currentPin, new_pin: newPin }),
+    });
+    const data = await handleResponse(res);
+    if (data && data.token) {
+      setAdminToken(data.token);
+    }
+    return data;
+  },
+
+  logout() {
+    clearAdminToken();
+  },
+
   // Insumos
   async getInsumos(params = {}) {
     const query = new URLSearchParams();
@@ -33,7 +121,7 @@ export const api = {
   async createInsumo(data) {
     const res = await fetch(`${API_BASE}/insumos`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(data),
     });
     return handleResponse(res);
@@ -42,7 +130,7 @@ export const api = {
   async updateInsumo(id, data) {
     const res = await fetch(`${API_BASE}/insumos/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(data),
     });
     return handleResponse(res);
@@ -51,6 +139,7 @@ export const api = {
   async deleteInsumo(id) {
     const res = await fetch(`${API_BASE}/insumos/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
     return handleResponse(res);
   },
@@ -73,7 +162,7 @@ export const api = {
   async createReceta(data) {
     const res = await fetch(`${API_BASE}/recetas`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(data),
     });
     return handleResponse(res);
@@ -82,7 +171,7 @@ export const api = {
   async updateReceta(id, data) {
     const res = await fetch(`${API_BASE}/recetas/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(data),
     });
     return handleResponse(res);
@@ -91,6 +180,7 @@ export const api = {
   async deleteReceta(id) {
     const res = await fetch(`${API_BASE}/recetas/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
     return handleResponse(res);
   },
@@ -104,7 +194,7 @@ export const api = {
   async createSesion(data) {
     const res = await fetch(`${API_BASE}/produccion`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(data),
     });
     return handleResponse(res);
@@ -113,6 +203,7 @@ export const api = {
   async deleteSesion(id) {
     const res = await fetch(`${API_BASE}/produccion/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
     return handleResponse(res);
   },
@@ -136,7 +227,7 @@ export const api = {
   async updateConfig(data) {
     const res = await fetch(`${API_BASE}/configuracion`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(data),
     });
     return handleResponse(res);
@@ -150,7 +241,8 @@ export const api = {
 
   async syncGithub() {
     const res = await fetch(`${API_BASE}/backup/sync-github`, {
-      method: 'POST'
+      method: 'POST',
+      headers: getAuthHeaders(),
     });
     return handleResponse(res);
   },
@@ -160,6 +252,7 @@ export const api = {
     formData.append('file', file);
     const res = await fetch(`${API_BASE}/backup/import`, {
       method: 'POST',
+      headers: getAuthHeaders(),
       body: formData
     });
     return handleResponse(res);

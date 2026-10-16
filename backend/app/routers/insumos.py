@@ -5,6 +5,7 @@ from ..database import get_db
 from ..models import Insumo, RecetaIngrediente
 from ..schemas import InsumoCreate, InsumoUpdate, InsumoOut
 from ..github_sync import trigger_auto_sync
+from .auth import require_admin
 
 router = APIRouter(prefix="/api/insumos", tags=["Insumos y Packaging"])
 
@@ -25,7 +26,7 @@ def listar_insumos(
             ins.calcular_costo_base()
     return insumos
 
-@router.post("", response_model=InsumoOut, status_code=201)
+@router.post("", response_model=InsumoOut, status_code=201, dependencies=[Depends(require_admin)])
 def crear_insumo(insumo_in: InsumoCreate, db: Session = Depends(get_db)):
     nuevo = Insumo(
         nombre=insumo_in.nombre.strip(),
@@ -50,7 +51,7 @@ def obtener_insumo(insumo_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Insumo no encontrado")
     return ins
 
-@router.put("/{insumo_id}", response_model=InsumoOut)
+@router.put("/{insumo_id}", response_model=InsumoOut, dependencies=[Depends(require_admin)])
 def actualizar_insumo(insumo_id: int, insumo_in: InsumoUpdate, db: Session = Depends(get_db)):
     ins = db.query(Insumo).filter(Insumo.id == insumo_id).first()
     if not ins:
@@ -71,7 +72,7 @@ def actualizar_insumo(insumo_id: int, insumo_in: InsumoUpdate, db: Session = Dep
     trigger_auto_sync(db)
     return ins
 
-@router.delete("/{insumo_id}", status_code=204)
+@router.delete("/{insumo_id}", status_code=204, dependencies=[Depends(require_admin)])
 def eliminar_insumo(insumo_id: int, db: Session = Depends(get_db)):
     ins = db.query(Insumo).filter(Insumo.id == insumo_id).first()
     if not ins:

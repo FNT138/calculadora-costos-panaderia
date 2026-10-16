@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from ..database import get_db, engine, DATABASE_URL
 from ..github_sync import export_db_to_dict, import_dict_to_db, push_backup_to_github, pull_backup_from_github
+from .auth import require_admin
 
 router = APIRouter(prefix="/api/backup", tags=["Respaldos y Persistencia"])
 
@@ -42,7 +43,7 @@ def exportar_copia_seguridad(db: Session = Depends(get_db)):
         }
     )
 
-@router.post("/import")
+@router.post("/import", dependencies=[Depends(require_admin)])
 async def importar_copia_seguridad(
     request: Request,
     file: Optional[UploadFile] = File(None),

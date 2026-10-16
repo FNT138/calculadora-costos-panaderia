@@ -10,11 +10,12 @@ import {
   X,
   Sparkles,
   Wheat,
-  Box
+  Box,
+  Lock
 } from 'lucide-react';
 import { api } from '../api';
 
-export default function InsumosView({ onNotify }) {
+export default function InsumosView({ onNotify, isAdmin, onRequirePin }) {
   const [insumos, setInsumos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtroCategoria, setFiltroCategoria] = useState('');
@@ -56,6 +57,10 @@ export default function InsumosView({ onNotify }) {
   }, [filtroCategoria, busqueda]);
 
   const handleOpenModal = (insumo = null) => {
+    if (!isAdmin) {
+      if (onRequirePin) onRequirePin();
+      return;
+    }
     if (insumo) {
       setEditingInsumo(insumo);
       setFormData({
@@ -120,6 +125,10 @@ export default function InsumosView({ onNotify }) {
   };
 
   const handleDelete = async (id, nombre) => {
+    if (!isAdmin) {
+      if (onRequirePin) onRequirePin();
+      return;
+    }
     if (!window.confirm(`¿Estás seguro de eliminar '${nombre}'?`)) return;
     try {
       await api.deleteInsumo(id);
@@ -283,7 +292,7 @@ export default function InsumosView({ onNotify }) {
             onClick={() => handleOpenModal()}
             className="flex items-center space-x-1 bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 rounded-xl text-sm font-medium shadow-sm transition-all shrink-0"
           >
-            <Plus className="w-4 h-4" />
+            {isAdmin ? <Plus className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5 text-amber-200" />}
             <span className="hidden xs:inline">Nuevo Insumo</span>
           </button>
         </div>

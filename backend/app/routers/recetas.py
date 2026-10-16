@@ -6,6 +6,7 @@ from ..models import Receta, RecetaIngrediente, Insumo, SesionProduccionItem
 from ..schemas import RecetaCreate, RecetaUpdate, RecetaOut, RecetaIngredienteOut
 from ..calculos import calcular_desglose_receta, get_config_val
 from ..github_sync import trigger_auto_sync
+from .auth import require_admin
 
 router = APIRouter(prefix="/api/recetas", tags=["Recetas y Costos"])
 
@@ -62,7 +63,7 @@ def listar_recetas(
     recetas = query.order_by(Receta.nombre.asc()).all()
     return [format_receta_out(r, valor_hora) for r in recetas]
 
-@router.post("", response_model=RecetaOut, status_code=201)
+@router.post("", response_model=RecetaOut, status_code=201, dependencies=[Depends(require_admin)])
 def crear_receta(receta_in: RecetaCreate, db: Session = Depends(get_db)):
     nueva = Receta(
         nombre=receta_in.nombre.strip(),
@@ -112,7 +113,7 @@ def obtener_receta(receta_id: int, db: Session = Depends(get_db)):
     valor_hora = get_config_val(db, "costo_hora_defecto", 20000.0)
     return format_receta_out(receta, valor_hora)
 
-@router.put("/{receta_id}", response_model=RecetaOut)
+@router.put("/{receta_id}", response_model=RecetaOut, dependencies=[Depends(require_admin)])
 def actualizar_receta(receta_id: int, receta_in: RecetaUpdate, db: Session = Depends(get_db)):
     receta = db.query(Receta).filter(Receta.id == receta_id).first()
     if not receta:
@@ -146,7 +147,7 @@ def actualizar_receta(receta_id: int, receta_in: RecetaUpdate, db: Session = Dep
     trigger_auto_sync(db)
     return format_receta_out(receta, valor_hora)
 
-@router.delete("/{receta_id}", status_code=204)
+@router.delete("/{receta_id}", status_code=204, dependencies=[Depends(require_admin)])
 def eliminar_receta(receta_id: int, db: Session = Depends(get_db)):
     receta = db.query(Receta).filter(Receta.id == receta_id).first()
     if not receta:

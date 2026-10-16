@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-16T22:34:57.181951",
+  "timestamp": "2026-10-16T23:05:12.693665",
   "configuraciones": [
     {
       "clave": "costo_hora_defecto",
@@ -15,6 +15,11 @@
       "clave": "porcentaje_servicios_defecto",
       "valor": "10.0",
       "descripcion": "Porcentaje para gas, luz y desgaste (%)"
+    },
+    {
+      "clave": "admin_pin",
+      "valor": "1234",
+      "descripcion": "PIN de seguridad para habilitar edición de recetas e insumos"
     }
   ],
   "insumos": [
@@ -901,5 +906,87 @@
       ]
     }
   ],
-  "sesiones": []
+  "sesiones": [
+    {
+      "id": 1,
+      "fecha": "2026-10-16T22:55:00.411862",
+      "titulo": "Hornada del día",
+      "horas_trabajadas": 14.1,
+      "costo_hora_mano_obra": 20000.0,
+      "costo_total_mano_obra": 282000.0,
+      "notas": "2 dias de Trabajo, Regalado 1 budin y 100 de palmeritas ( feria dia de la madre )",
+      "items": [
+        {
+          "receta_id": 6,
+          "unidades_producidas": 1.0,
+          "factor_dificultad": 1.0,
+          "costo_mano_obra_unitario": 18800.0,
+          "costo_ingredientes_unitario": 598.58,
+          "costo_packaging_unitario": 0.0,
+          "costo_indirectos_unitario": 1939.86,
+          "costo_total_unitario": 21338.44
+        },
+        {
+          "receta_id": 1,
+          "unidades_producidas": 1.0,
+          "factor_dificultad": 1.0,
+          "costo_mano_obra_unitario": 18800.0,
+          "costo_ingredientes_unitario": 1017.93,
+          "costo_packaging_unitario": 0.0,
+          "costo_indirectos_unitario": 1981.79,
+          "costo_total_unitario": 21799.72
+        },
+        {
+          "receta_id": 7,
+          "unidades_producidas": 3.0,
+          "factor_dificultad": 1.0,
+          "costo_mano_obra_unitario": 18800.0,
+          "costo_ingredientes_unitario": 3553.45,
+          "costo_packaging_unitario": 0.0,
+          "costo_indirectos_unitario": 2235.35,
+          "costo_total_unitario": 24588.8
+        },
+        {
+          "receta_id": 5,
+          "unidades_producidas": 1.0,
+          "factor_dificultad": 1.0,
+          "costo_mano_obra_unitario": 18800.0,
+          "costo_ingredientes_unitario": 429.08,
+          "costo_packaging_unitario": 0.0,
+          "costo_indirectos_unitario": 1922.91,
+          "costo_total_unitario": 21151.99
+        },
+        {
+          "receta_id": 2,
+          "unidades_producidas": 2.0,
+          "factor_dificultad": 1.0,
+          "costo_mano_obra_unitario": 18800.0,
+          "costo_ingredientes_unitario": 1680.17,
+          "costo_packaging_unitario": 0.0,
+          "costo_indirectos_unitario": 2048.02,
+          "costo_total_unitario": 22528.19
+        },
+        {
+          "receta_id": 3,
+          "unidades_producidas": 2.0,
+          "factor_dificultad": 1.0,
+          "costo_mano_obra_unitario": 18800.0,
+          "costo_ingredientes_unitario": 2043.59,
+          "costo_packaging_unitario": 0.0,
+          "costo_indirectos_unitario": 2084.36,
+          "costo_total_unitario": 22927.95
+        },
+        {
+          "receta_id": 4,
+          "unidades_producidas": 5.0,
+          "factor_dificultad": 1.0,
+          "costo_mano_obra_unitario": 18800.0,
+          "costo_ingredientes_unitario": 1389.79,
+          "costo_packaging_unitario": 0.0,
+          "costo_indirectos_unitario": 2018.98,
+          "costo_total_unitario": 22208.77
+        }
+      ]
+    }
+  ]
 }
