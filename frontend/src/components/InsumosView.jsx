@@ -135,33 +135,99 @@ export default function InsumosView({ onNotify }) {
     const cant = Number(formData.cantidad_compra) || 1;
     const precio = Number(formData.precio_compra) || 0;
     const merma = Number(formData.merma_porcentaje) || 0;
-    const u = formData.unidad_compra.toLowerCase();
+    const u = (formData.unidad_compra || 'kg').toLowerCase().trim();
 
     let cantBase = cant;
     let base = 'unidad';
+    let unidadHumana = 'unidades';
+
     if (['kg', 'kilo', 'kilos'].includes(u)) {
       cantBase = cant * 1000;
       base = 'g';
+      unidadHumana = `${cant} kg (${cantBase.toLocaleString('es-AR')} g)`;
     } else if (['g', 'gr', 'gramos'].includes(u)) {
       cantBase = cant;
       base = 'g';
+      unidadHumana = `${cant} g`;
     } else if (['litro', 'l', 'litros'].includes(u)) {
       cantBase = cant * 1000;
       base = 'ml';
+      unidadHumana = `${cant} l (${cantBase.toLocaleString('es-AR')} ml)`;
     } else if (['ml', 'cm3'].includes(u)) {
       cantBase = cant;
       base = 'ml';
+      unidadHumana = `${cant} ml`;
     } else if (['docena', 'docenas'].includes(u)) {
       cantBase = cant * 12;
       base = 'unidad';
+      unidadHumana = `${cant} docenas (${cantBase} u)`;
+    } else {
+      cantBase = cant;
+      base = 'unidad';
+      unidadHumana = `${cant} unidades`;
     }
 
     const aprovechamiento = Math.max(0.01, 1 - (merma / 100));
-    const costo = (precio / cantBase) / aprovechamiento;
-    return { costo: costo > 0 ? costo.toFixed(4) : '0.00', base };
+    const costo = cantBase > 0 ? ((precio / cantBase) / aprovechamiento) : 0;
+
+    const formatoPrecio = costo.toLocaleString('es-AR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4
+    });
+
+    return { 
+      costo: formatoPrecio, 
+      costoNum: costo,
+      base, 
+      cantBase, 
+      unidadHumana,
+      precio,
+      merma
+    };
+  };
+
+  const getEtiquetaCantidad = () => {
+    const u = (formData.unidad_compra || 'kg').toLowerCase();
+    if (['kg', 'kilo', 'kilos'].includes(u)) {
+      return { 
+        label: '¿Cuántos Kilos compraste?', 
+        placeholder: 'Ej: 1 (si es 1 kg), 5 (si es balde de 5 kg)', 
+        hint: 'Si compraste 1 kilo, pon 1. El sistema calculará el costo por gramo dividiendo por 1.000.' 
+      };
+    }
+    if (['litro', 'l', 'litros'].includes(u)) {
+      return { 
+        label: '¿Cuántos Litros compraste?', 
+        placeholder: 'Ej: 1 (si es 1 litro), 5 (si es bidón de 5 l)', 
+        hint: 'Si compraste 1 litro, pon 1. El sistema calculará el costo por ml dividiendo por 1.000.' 
+      };
+    }
+    if (['pack', 'unidad'].includes(u)) {
+      return { 
+        label: '¿Cuántas unidades vienen en el paquete/caja?', 
+        placeholder: 'Ej: 100 (para pack de 100 bolsitas)', 
+        hint: 'Cantidad total de unidades sueltas que contiene el paquete.' 
+      };
+    }
+    if (['docena'].includes(u)) {
+      return { 
+        label: '¿Cuántas docenas compraste?', 
+        placeholder: 'Ej: 1 (equivale a 12 unidades)', 
+        hint: '1 docena = 12 unidades.' 
+      };
+    }
+    if (['g', 'gramos'].includes(u)) {
+      return { 
+        label: '¿Cuántos Gramos compraste?', 
+        placeholder: 'Ej: 250 (para paquete de 250 g)', 
+        hint: '⚠️ ¡Atención! Si compraste por Kilo, selecciona "Kilo (kg)" arriba.' 
+      };
+    }
+    return { label: 'Cantidad en Paquete', placeholder: 'Ej: 1', hint: '' };
   };
 
   const preview = calcularPreviewCosto();
+  const etiquetaCantidad = getEtiquetaCantidad();
 
   return (
     <div className="space-y-6">
@@ -305,7 +371,7 @@ export default function InsumosView({ onNotify }) {
                   <span className="text-xs text-slate-500">Costo por {ins.unidad_base}:</span>
                   <div className="text-right">
                     <span className="text-base font-extrabold text-amber-600">
-                      ${ins.costo_por_unidad_base < 1 ? ins.costo_por_unidad_base.toFixed(3) : ins.costo_por_unidad_base.toFixed(2)}
+                      ${ins.costo_por_unidad_base.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}
                     </span>
                     <span className="text-[11px] text-slate-400 ml-1">/ {ins.unidad_base}</span>
                   </div>
@@ -377,30 +443,42 @@ export default function InsumosView({ onNotify }) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Cantidad en Paquete</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    {etiquetaCantidad.label}
+                  </label>
                   <input
                     type="number"
                     step="any"
                     min="0.001"
                     required
-                    placeholder="Ej: 1, 5, 100..."
+                    placeholder={etiquetaCantidad.placeholder}
                     value={formData.cantidad_compra}
                     onChange={(e) => setFormData({ ...formData, cantidad_compra: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none font-bold text-slate-800"
                   />
+                  {etiquetaCantidad.hint && (
+                    <p className="text-[10px] text-slate-400 mt-1 leading-tight">
+                      {etiquetaCantidad.hint}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Precio Total Pagado ($)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Precio Total Pagado ($)
+                  </label>
                   <input
                     type="number"
                     step="any"
                     min="0"
                     required
-                    placeholder="Ej: 1800, 4500..."
+                    placeholder="Ej: 10000, 1500..."
                     value={formData.precio_compra}
                     onChange={(e) => setFormData({ ...formData, precio_compra: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
                   />
+                  <p className="text-[10px] text-slate-400 mt-1 leading-tight">
+                    El valor total que pagaste por esa cantidad.
+                  </p>
                 </div>
               </div>
 
@@ -409,7 +487,7 @@ export default function InsumosView({ onNotify }) {
                   <label className="block text-xs font-semibold text-slate-700">
                     Merma o Pérdida (%)
                   </label>
-                  <span className="text-[11px] text-slate-400">Opcional (desperdicio en cocción)</span>
+                  <span className="text-[11px] text-slate-400">Opcional (desperdicio en cocción/envase)</span>
                 </div>
                 <input
                   type="number"
@@ -422,18 +500,36 @@ export default function InsumosView({ onNotify }) {
                 />
               </div>
 
-              {/* Vista previa de costo unitario */}
-              <div className="bg-amber-50 p-3.5 rounded-2xl border border-amber-200/60 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-amber-900">Costo unitario calculado:</p>
-                  <p className="text-[11px] text-amber-700">Se usará en todas tus recetas</p>
+              {/* Vista previa explicativa en vivo con fórmula matemática */}
+              <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-amber-950">Costo unitario calculado:</p>
+                    <p className="text-[11px] text-amber-800 mt-0.5">
+                      {preview.precio > 0 ? (
+                        <>
+                          ${preview.precio.toLocaleString('es-AR')} pagados ÷ {preview.cantBase.toLocaleString('es-AR')} {preview.base}
+                          {preview.merma > 0 ? ` (+${preview.merma}% merma)` : ''}
+                        </>
+                      ) : (
+                        'Ingresa precio y cantidad para ver la fórmula'
+                      )}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-black text-amber-700">
+                      ${preview.costo}
+                    </p>
+                    <p className="text-[10px] text-amber-800 uppercase font-bold">por cada {preview.base}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-black text-amber-700">
-                    ${preview.costo}
-                  </p>
-                  <p className="text-[10px] text-amber-800 uppercase font-semibold">por {preview.base}</p>
-                </div>
+
+                {preview.precio > 0 && (
+                  <div className="pt-2 border-t border-amber-200/60 text-[11px] text-amber-900 font-medium flex items-center justify-between">
+                    <span>Equivalencia:</span>
+                    <span>1 {formData.unidad_compra} = {preview.cantBase.toLocaleString('es-AR')} {preview.base}</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-end space-x-2 pt-2">

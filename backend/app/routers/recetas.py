@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Receta, RecetaIngrediente, Insumo
+from ..models import Receta, RecetaIngrediente, Insumo, SesionProduccionItem
 from ..schemas import RecetaCreate, RecetaUpdate, RecetaOut, RecetaIngredienteOut
 from ..calculos import calcular_desglose_receta, get_config_val
 
@@ -139,6 +139,14 @@ def eliminar_receta(receta_id: int, db: Session = Depends(get_db)):
     receta = db.query(Receta).filter(Receta.id == receta_id).first()
     if not receta:
         raise HTTPException(status_code=404, detail="Receta no encontrada")
+    
+    # 1. Eliminar referencias en sesiones de producción para evitar error 500 por Foreign Key
+    db.query(SesionProduccionItem).filter(SesionProduccionItem.receta_id == receta.id).delete()
+    
+    # 2. Eliminar ingredientes de la receta
+    db.query(RecetaIngrediente).filter(RecetaIngrediente.receta_id == receta.id).delete()
+    
+    # 3. Eliminar la receta
     db.delete(receta)
     db.commit()
     return None
