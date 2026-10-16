@@ -1,0 +1,193 @@
+from datetime import datetime
+from typing import List, Optional
+from pydantic import BaseModel, Field
+
+# ----------------- INSUMOS -----------------
+class InsumoBase(BaseModel):
+    nombre: str = Field(..., example="Harina 000")
+    categoria: str = Field(default="ingrediente", example="ingrediente") # "ingrediente" o "packaging"
+    unidad_compra: str = Field(..., example="kg")
+    cantidad_compra: float = Field(default=1.0, gt=0, example=1.0)
+    precio_compra: float = Field(..., ge=0, example=1500.0)
+    merma_porcentaje: float = Field(default=0.0, ge=0, lt=100, example=0.0)
+    notas: Optional[str] = None
+
+class InsumoCreate(InsumoBase):
+    pass
+
+class InsumoUpdate(BaseModel):
+    nombre: Optional[str] = None
+    categoria: Optional[str] = None
+    unidad_compra: Optional[str] = None
+    cantidad_compra: Optional[float] = None
+    precio_compra: Optional[float] = None
+    merma_porcentaje: Optional[float] = None
+    notas: Optional[str] = None
+
+class InsumoOut(InsumoBase):
+    id: int
+    unidad_base: str
+    costo_por_unidad_base: float
+    fecha_actualizacion: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ----------------- RECETA INGREDIENTES -----------------
+class RecetaIngredienteCreate(BaseModel):
+    insumo_id: int
+    cantidad: float = Field(..., gt=0, example=400.0) # en unidad base (g, ml, unid)
+    notas: Optional[str] = None
+
+class RecetaIngredienteOut(BaseModel):
+    id: int
+    insumo_id: int
+    insumo_nombre: str
+    insumo_categoria: str
+    unidad_base: str
+    cantidad: float
+    costo_unitario_insumo: float
+    subtotal: float
+    notas: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ----------------- RECETAS -----------------
+class RecetaBase(BaseModel):
+    nombre: str = Field(..., example="Cañoncitos de Dulce de Leche")
+    categoria: Optional[str] = Field(default="General", example="Facturas")
+    descripcion: Optional[str] = None
+    rendimiento_unidades: float = Field(default=1.0, gt=0, example=24.0)
+    tiempo_preparacion_minutos: float = Field(default=60.0, ge=0, example=45.0)
+    porcentaje_costos_indirectos: float = Field(default=10.0, ge=0, example=10.0)
+    margen_ganancia_sugerido: float = Field(default=60.0, ge=0, example=60.0)
+    precio_venta_fijado: Optional[float] = None
+
+class RecetaCreate(RecetaBase):
+    ingredientes: List[RecetaIngredienteCreate] = []
+
+class RecetaUpdate(BaseModel):
+    nombre: Optional[str] = None
+    categoria: Optional[str] = None
+    descripcion: Optional[str] = None
+    rendimiento_unidades: Optional[float] = None
+    tiempo_preparacion_minutos: Optional[float] = None
+    porcentaje_costos_indirectos: Optional[float] = None
+    margen_ganancia_sugerido: Optional[float] = None
+    precio_venta_fijado: Optional[float] = None
+    ingredientes: Optional[List[RecetaIngredienteCreate]] = None
+
+class DesgloseCostos(BaseModel):
+    costo_ingredientes_tanda: float
+    costo_packaging_tanda: float
+    costo_materia_prima_tanda: float
+    
+    costo_ingredientes_unitario: float
+    costo_packaging_unitario: float
+    costo_materia_prima_unitario: float
+    costo_mano_obra_unitario: float
+    costo_indirectos_unitario: float
+    costo_total_unitario: float
+
+    precio_sugerido: float
+    ganancia_unitaria_sugerida: float
+    margen_sobre_costo: float
+    margen_sobre_precio: float
+
+    precio_venta_fijado: Optional[float] = None
+    ganancia_unitaria_fijada: Optional[float] = None
+    margen_fijado: Optional[float] = None
+
+class RecetaOut(RecetaBase):
+    id: int
+    fecha_creacion: Optional[datetime] = None
+    fecha_actualizacion: Optional[datetime] = None
+    ingredientes: List[RecetaIngredienteOut] = []
+    costos: Optional[DesgloseCostos] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ----------------- SESIONES DE PRODUCCIÓN (VENTANA TEMPORAL) -----------------
+class SesionItemInput(BaseModel):
+    receta_id: int
+    unidades_producidas: float = Field(..., gt=0, example=40.0)
+    factor_dificultad: float = Field(default=1.0, gt=0, example=1.0)
+
+class SesionCreate(BaseModel):
+    titulo: str = Field(..., example="Horneada del Sábado Mañana")
+    fecha: Optional[datetime] = None
+    horas_trabajadas: float = Field(..., gt=0, example=3.0)
+    costo_hora_mano_obra: Optional[float] = Field(default=None, example=20000.0)
+    notas: Optional[str] = None
+    items: List[SesionItemInput] = []
+
+class SesionItemOut(BaseModel):
+    id: int
+    receta_id: int
+    receta_nombre: str
+    unidades_producidas: float
+    factor_dificultad: float
+    costo_mano_obra_unitario: float
+    costo_ingredientes_unitario: float
+    costo_packaging_unitario: float
+    costo_indirectos_unitario: float
+    costo_total_unitario: float
+    costo_total_item: float
+
+    class Config:
+        from_attributes = True
+
+class SesionOut(BaseModel):
+    id: int
+    fecha: datetime
+    titulo: str
+    horas_trabajadas: float
+    costo_hora_mano_obra: float
+    costo_total_mano_obra: float
+    notas: Optional[str] = None
+    items: List[SesionItemOut] = []
+    costo_total_sesion: float
+    total_unidades_producidas: float
+
+    class Config:
+        from_attributes = True
+
+
+# ----------------- SIMULADOR Y MAXIMIZACIÓN DE PRECIOS -----------------
+class PuntoCurvaGanancia(BaseModel):
+    precio: float
+    margen_porcentaje: float
+    ganancia_unitaria: float
+    volumen_estimado: float
+    ingreso_total: float
+    costo_total: float
+    ganancia_total: float
+
+class SimuladorAnalisis(BaseModel):
+    receta_id: int
+    receta_nombre: str
+    costo_total_unitario: float
+    desglose: DesgloseCostos
+    precio_minimo_equilibrio: float
+    precio_economico: float
+    precio_recomendado: float
+    precio_premium: float
+    precio_optimo_ganancia: float
+    curva_sensibilidad: List[PuntoCurvaGanancia]
+
+
+# ----------------- CONFIGURACIÓN -----------------
+class ConfiguracionItem(BaseModel):
+    clave: str
+    valor: str
+    descripcion: Optional[str] = None
+
+class ConfiguracionUpdate(BaseModel):
+    costo_hora_defecto: Optional[float] = None
+    margen_defecto: Optional[float] = None
+    porcentaje_servicios_defecto: Optional[float] = None

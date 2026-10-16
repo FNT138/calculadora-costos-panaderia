@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.env
+
+# Node.js
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+
+# Mantener la compilación lista para producción
+!frontend/dist/
+
+# Logs y bases temporales
+*.log
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
