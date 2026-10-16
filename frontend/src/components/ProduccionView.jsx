@@ -10,7 +10,8 @@ import {
   X,
   Layers,
   ArrowRight,
-  Lock
+  Lock,
+  Edit2
 } from 'lucide-react';
 import { api } from '../api';
 
@@ -22,6 +23,7 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     titulo: '',
     horas_trabajadas: 3.0,
@@ -52,24 +54,41 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
     cargarDatos();
   }, []);
 
-  const handleOpenModal = () => {
+  const handleOpenModal = (sesion = null) => {
     if (!isAdmin) {
       if (onRequirePin) onRequirePin();
       return;
     }
-    const valorHora = config ? config.costo_hora_defecto : 20000.0;
-    setFormData({
-      titulo: 'Hornada del día',
-      horas_trabajadas: 3.0,
-      costo_hora_mano_obra: valorHora,
-      notas: '',
-      items: recetas.length > 0 ? [{ receta_id: recetas[0].id, unidades_producidas: 30, factor_dificultad: 1.0 }] : []
-    });
+    if (sesion) {
+      setEditingId(sesion.id);
+      setFormData({
+        titulo: sesion.titulo,
+        horas_trabajadas: sesion.horas_trabajadas,
+        costo_hora_mano_obra: sesion.costo_hora_mano_obra,
+        notas: sesion.notas || '',
+        items: sesion.items.map(it => ({
+          receta_id: it.receta_id,
+          unidades_producidas: it.unidades_producidas,
+          factor_dificultad: it.factor_dificultad || 1.0
+        }))
+      });
+    } else {
+      setEditingId(null);
+      const valorHora = config ? config.costo_hora_defecto : 20000.0;
+      setFormData({
+        titulo: 'Hornada del día',
+        horas_trabajadas: 3.0,
+        costo_hora_mano_obra: valorHora,
+        notas: '',
+        items: recetas.length > 0 ? [{ receta_id: recetas[0].id, unidades_producidas: 30, factor_dificultad: 1.0 }] : []
+      });
+    }
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setEditingId(null);
   };
 
   const handleAddItemRow = () => {
@@ -125,8 +144,13 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
         }))
       };
 
-      await api.createSesion(payload);
-      onNotify('Sesión de producción y mano de obra guardada con éxito', 'success');
+      if (editingId) {
+        await api.updateSesion(editingId, payload);
+        onNotify('Sesión de producción actualizada con éxito', 'success');
+      } else {
+        await api.createSesion(payload);
+        onNotify('Sesión de producción y mano de obra guardada con éxito', 'success');
+      }
       handleCloseModal();
       cargarDatos();
     } catch (err) {
@@ -254,13 +278,22 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
                           {sesion.horas_trabajadas}h @ ${sesion.costo_hora_mano_obra?.toLocaleString('es-AR')} = ${sesion.costo_total_mano_obra?.toLocaleString('es-AR')}
                         </span>
                       </div>
-                      <button
-                        onClick={() => handleDelete(sesion.id, sesion.titulo)}
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                        title="Eliminar sesión"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => handleOpenModal(sesion)}
+                          className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
+                          title="Editar sesión y cantidades"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(sesion.id, sesion.titulo)}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                          title="Eliminar sesión"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -332,7 +365,9 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-amber-50/50">
               <div className="flex items-center space-x-2">
                 <Clock className="w-5 h-5 text-amber-600" />
-                <h3 className="font-bold text-slate-800 text-base">Registrar Jornada de Horneado</h3>
+                <h3 className="font-bold text-slate-800 text-base">
+                  {editingId ? 'Editar Jornada de Horneado' : 'Registrar Jornada de Horneado'}
+                </h3>
               </div>
               <button onClick={handleCloseModal} className="text-slate-400 hover:text-slate-600 p-1">
                 <X className="w-5 h-5" />
@@ -473,7 +508,7 @@ export default function ProduccionView({ onNotify, isAdmin, onRequirePin }) {
                   type="submit"
                   className="px-5 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-sm transition-all"
                 >
-                  Registrar Sesión
+                  {editingId ? 'Guardar Cambios' : 'Registrar Sesión'}
                 </button>
               </div>
             </form>

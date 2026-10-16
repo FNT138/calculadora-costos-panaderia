@@ -200,6 +200,15 @@ export const api = {
     return handleResponse(res);
   },
 
+  async updateSesion(id, data) {
+    const res = await fetch(`${API_BASE}/produccion/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
   async deleteSesion(id) {
     const res = await fetch(`${API_BASE}/produccion/${id}`, {
       method: 'DELETE',
