@@ -52,7 +52,8 @@
   }
 
   /* El modal montado como Portal en body es lo ÚNICO que se imprime */
-  #informe-produccion-modal {
+  #informe-produccion-modal,
+  #lista-precios-modal {
     display: block !important;
     visibility: visible !important;
     position: static !important;

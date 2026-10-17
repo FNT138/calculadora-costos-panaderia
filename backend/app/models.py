@@ -71,6 +71,7 @@ class Receta(Base):
     # Cascadas para permitir borrado limpio sin errores de clave foránea
     ingredientes = relationship("RecetaIngrediente", back_populates="receta", cascade="all, delete-orphan", passive_deletes=True)
     producciones = relationship("SesionProduccionItem", back_populates="receta", cascade="all, delete-orphan", passive_deletes=True)
+    presentaciones = relationship("PresentacionVentaItem", back_populates="receta", cascade="all, delete-orphan", passive_deletes=True)
 
 
 class RecetaIngrediente(Base):
@@ -127,3 +128,36 @@ class Configuracion(Base):
     clave = Column(String(80), primary_key=True)
     valor = Column(String(255), nullable=False)
     descripcion = Column(String(255), nullable=True)
+
+
+class PresentacionVenta(Base):
+    __tablename__ = "presentaciones_venta"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(150), nullable=False, index=True)
+    descripcion = Column(Text, nullable=True)
+    categoria = Column(String(50), nullable=False, default="Packs & Bandejas") # "Packs & Bandejas", "Cajas", "Individual", "Promos"
+    packaging_id = Column(Integer, ForeignKey("insumos.id", ondelete="SET NULL"), nullable=True)
+    cantidad_packaging = Column(Float, nullable=False, default=1.0)
+    margen_adicional = Column(Float, nullable=False, default=0.0) # Margen adicional opcional (%)
+    precio_venta_fijado = Column(Float, nullable=True) # Precio manual si se desea sobreescribir
+    redondeo_multiplo = Column(Integer, nullable=False, default=50) # 5, 10, 50, 100
+    activo = Column(Integer, nullable=False, default=1) # 1 activo, 0 inactivo
+    fecha_creacion = Column(DateTime, default=datetime.utcnow)
+    fecha_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    packaging = relationship("Insumo")
+    items = relationship("PresentacionVentaItem", back_populates="presentacion", cascade="all, delete-orphan", passive_deletes=True)
+
+
+class PresentacionVentaItem(Base):
+    __tablename__ = "presentacion_venta_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    presentacion_id = Column(Integer, ForeignKey("presentaciones_venta.id", ondelete="CASCADE"), nullable=False)
+    receta_id = Column(Integer, ForeignKey("recetas.id", ondelete="CASCADE"), nullable=False)
+    cantidad = Column(Float, nullable=False, default=1.0) # Cantidad de unidades de la receta incluidas
+    notas = Column(String(150), nullable=True)
+
+    presentacion = relationship("PresentacionVenta", back_populates="items")
+    receta = relationship("Receta", back_populates="presentaciones")

@@ -4,6 +4,7 @@ import {
   Package, 
   Clock, 
   TrendingUp, 
+  ShoppingBag,
   Settings,
   Flame,
   Lock,
@@ -13,6 +14,7 @@ import {
 export default function Navbar({ activeTab, setActiveTab, onOpenConfig, isAdmin, onOpenPinModal, onLock }) {
   const navItems = [
     { id: 'recetas', label: 'Recetas & Costos', icon: UtensilsCrossed },
+    { id: 'ventas', label: 'Ventas & Packs', icon: ShoppingBag },
     { id: 'insumos', label: 'Insumos & Packaging', icon: Package },
     { id: 'produccion', label: 'Mano de Obra & Horas', icon: Clock },
     { id: 'simulador', label: 'Simulador de Ganancia', icon: TrendingUp },
@@ -97,7 +99,7 @@ export default function Navbar({ activeTab, setActiveTab, onOpenConfig, isAdmin,
       </div>
 
       {/* Barra de navegación inferior / responsive para celular */}
-      <div className="md:hidden border-t border-slate-100 bg-white grid grid-cols-4 px-2 py-1">
+      <div className="md:hidden border-t border-slate-100 bg-white grid grid-cols-5 px-1 py-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;

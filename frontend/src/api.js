@@ -217,6 +217,52 @@ export const api = {
     return handleResponse(res);
   },
 
+  // Ventas y Presentaciones Comerciales (Packs, Combos, Bandejas)
+  async getPresentaciones(params = {}) {
+    const query = new URLSearchParams();
+    if (params.categoria) query.append('categoria', params.categoria);
+    if (params.buscar) query.append('buscar', params.buscar);
+    if (params.solo_activos !== undefined) query.append('solo_activos', params.solo_activos);
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const res = await fetch(`${API_BASE}/ventas/presentaciones${qs}`);
+    return handleResponse(res);
+  },
+
+  async getPresentacion(id) {
+    const res = await fetch(`${API_BASE}/ventas/presentaciones/${id}`);
+    return handleResponse(res);
+  },
+
+  async createPresentacion(data) {
+    const res = await fetch(`${API_BASE}/ventas/presentaciones`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  async updatePresentacion(id, data) {
+    const res = await fetch(`${API_BASE}/ventas/presentaciones/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+
+  async deletePresentacion(id) {
+    const res = await fetch(`${API_BASE}/ventas/presentaciones/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    return handleResponse(res);
+  },
+
+  exportListaPreciosCsvUrl() {
+    return `${API_BASE}/ventas/exportar-csv`;
+  },
+
   // Simulador de Precios y Maximización
   async getSimulacion(recetaId, params = {}) {
     const query = new URLSearchParams();

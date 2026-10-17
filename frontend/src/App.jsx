@@ -4,6 +4,7 @@ import InsumosView from './components/InsumosView';
 import RecetasView from './components/RecetasView';
 import ProduccionView from './components/ProduccionView';
 import SimuladorView from './components/SimuladorView';
+import VentasView from './components/VentasView';
 import ConfigModal from './components/ConfigModal';
 import PinModal from './components/PinModal';
 import { CheckCircle2, AlertTriangle, AlertCircle, X } from 'lucide-react';
@@ -102,6 +103,13 @@ export default function App() {
             onRequirePin={() => setIsPinModalOpen(true)}
             onNotify={showNotification} 
             onSelectParaSimulador={handleIrASimulador} 
+          />
+        )}
+        {activeTab === 'ventas' && (
+          <VentasView 
+            isAdmin={isAdmin}
+            onRequirePin={() => setIsPinModalOpen(true)}
+            onNotify={showNotification} 
           />
         )}
         {activeTab === 'insumos' && (

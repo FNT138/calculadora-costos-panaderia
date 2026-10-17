@@ -12,7 +12,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime
 from sqlalchemy.orm import Session
-from .models import Insumo, Receta, RecetaIngrediente, SesionProduccion, SesionProduccionItem, Configuracion
+from .models import Insumo, Receta, RecetaIngrediente, SesionProduccion, SesionProduccionItem, Configuracion, PresentacionVenta, PresentacionVentaItem
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPO = os.getenv("GITHUB_REPO") # Ej: "FNT138/calculadora-costos-panaderia"
@@ -24,6 +24,7 @@ def export_db_to_dict(db: Session) -> dict:
     recetas = db.query(Receta).all()
     sesiones = db.query(SesionProduccion).all()
     configs = db.query(Configuracion).all()
+    presentaciones = db.query(PresentacionVenta).all()
 
     data = {
         "timestamp": datetime.utcnow().isoformat(),
@@ -89,6 +90,29 @@ def export_db_to_dict(db: Session) -> dict:
                 ]
             }
             for s in sesiones
+        ],
+        "presentaciones": [
+            {
+                "id": p.id,
+                "nombre": p.nombre,
+                "descripcion": p.descripcion,
+                "categoria": p.categoria,
+                "packaging_id": p.packaging_id,
+                "cantidad_packaging": p.cantidad_packaging,
+                "margen_adicional": p.margen_adicional,
+                "precio_venta_fijado": p.precio_venta_fijado,
+                "redondeo_multiplo": p.redondeo_multiplo,
+                "activo": p.activo,
+                "items": [
+                    {
+                        "receta_id": pi.receta_id,
+                        "cantidad": pi.cantidad,
+                        "notas": pi.notas
+                    }
+                    for pi in p.items
+                ]
+            }
+            for p in presentaciones
         ]
     }
     return data
@@ -213,12 +237,51 @@ def import_dict_to_db(db: Session, data: dict):
                         costo_total_unitario=sit.get("costo_total_unitario", 0)
                     ))
 
+        # 5. Presentaciones de Venta & Packs
+        if "presentaciones" in data:
+            for p_data in data["presentaciones"]:
+                pres = db.query(PresentacionVenta).filter(PresentacionVenta.id == p_data["id"]).first()
+                if not pres:
+                    pres = PresentacionVenta(
+                        id=p_data["id"],
+                        nombre=p_data["nombre"],
+                        descripcion=p_data.get("descripcion"),
+                        categoria=p_data.get("categoria", "Packs & Bandejas"),
+                        packaging_id=p_data.get("packaging_id"),
+                        cantidad_packaging=p_data.get("cantidad_packaging", 1.0),
+                        margen_adicional=p_data.get("margen_adicional", 0.0),
+                        precio_venta_fijado=p_data.get("precio_venta_fijado"),
+                        redondeo_multiplo=p_data.get("redondeo_multiplo", 50),
+                        activo=p_data.get("activo", 1)
+                    )
+                    db.add(pres)
+                    db.flush()
+                else:
+                    pres.nombre = p_data["nombre"]
+                    pres.descripcion = p_data.get("descripcion")
+                    pres.categoria = p_data.get("categoria", "Packs & Bandejas")
+                    pres.packaging_id = p_data.get("packaging_id")
+                    pres.cantidad_packaging = p_data.get("cantidad_packaging", 1.0)
+                    pres.margen_adicional = p_data.get("margen_adicional", 0.0)
+                    pres.precio_venta_fijado = p_data.get("precio_venta_fijado")
+                    pres.redondeo_multiplo = p_data.get("redondeo_multiplo", 50)
+                    pres.activo = p_data.get("activo", 1)
+
+                db.query(PresentacionVentaItem).filter(PresentacionVentaItem.presentacion_id == pres.id).delete()
+                for pi in p_data.get("items", []):
+                    db.add(PresentacionVentaItem(
+                        presentacion_id=pres.id,
+                        receta_id=pi["receta_id"],
+                        cantidad=pi["cantidad"],
+                        notas=pi.get("notas")
+                    ))
+
         db.commit()
         
         # Sincronizar secuencias seriales en PostgreSQL
         if db.bind and db.bind.dialect.name == "postgresql":
             from sqlalchemy import text
-            for tbl in ["insumos", "recetas", "receta_ingredientes", "sesiones_produccion", "sesion_produccion_items"]:
+            for tbl in ["insumos", "recetas", "receta_ingredientes", "sesiones_produccion", "sesion_produccion_items", "presentaciones_venta", "presentacion_venta_items"]:
                 try:
                     db.execute(text(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), coalesce(max(id), 0) + 1, false) FROM {tbl};"))
                     db.commit()

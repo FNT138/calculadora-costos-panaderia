@@ -10,7 +10,7 @@ from .database import engine, Base, SessionLocal
 from .models import Insumo
 from .seed import seed_database
 from .github_sync import pull_backup_from_github, import_dict_to_db
-from .routers import insumos, recetas, produccion, simulador, config, backup, auth
+from .routers import insumos, recetas, produccion, simulador, config, backup, auth, ventas
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -34,7 +34,7 @@ try:
     # 3. Sincronizar secuencias seriales de PostgreSQL para evitar error de duplicate key
     if db.bind and db.bind.dialect.name == "postgresql":
         from sqlalchemy import text
-        for tbl in ["insumos", "recetas", "receta_ingredientes", "sesiones_produccion", "sesion_produccion_items"]:
+        for tbl in ["insumos", "recetas", "receta_ingredientes", "sesiones_produccion", "sesion_produccion_items", "presentaciones_venta", "presentacion_venta_items"]:
             try:
                 db.execute(text(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), coalesce(max(id), 0) + 1, false) FROM {tbl};"))
                 db.commit()
@@ -66,6 +66,7 @@ app.include_router(insumos.router)
 app.include_router(recetas.router)
 app.include_router(produccion.router)
 app.include_router(simulador.router)
+app.include_router(ventas.router)
 app.include_router(config.router)
 app.include_router(backup.router)
 app.include_router(auth.router)

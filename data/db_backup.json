@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-16T23:11:52.849230",
+  "timestamp": "2026-10-17T00:37:48.419342",
   "configuraciones": [
     {
       "clave": "costo_hora_defecto",
@@ -23,6 +23,18 @@
     }
   ],
   "insumos": [
+    {
+      "id": 1,
+      "nombre": "Harina 0000",
+      "categoria": "ingrediente",
+      "unidad_compra": "kg",
+      "cantidad_compra": 1.0,
+      "precio_compra": 1471.0,
+      "merma_porcentaje": 1.0,
+      "unidad_base": "g",
+      "costo_por_unidad_base": 1.4859,
+      "notas": null
+    },
     {
       "id": 2,
       "nombre": "Harina 000",
@@ -48,6 +60,42 @@
       "notas": null
     },
     {
+      "id": 4,
+      "nombre": "Manteca",
+      "categoria": "ingrediente",
+      "unidad_compra": "g",
+      "cantidad_compra": 500.0,
+      "precio_compra": 7000.0,
+      "merma_porcentaje": 0.0,
+      "unidad_base": "g",
+      "costo_por_unidad_base": 14.0,
+      "notas": null
+    },
+    {
+      "id": 5,
+      "nombre": "Dulce de Leche Repostero",
+      "categoria": "ingrediente",
+      "unidad_compra": "kg",
+      "cantidad_compra": 1.0,
+      "precio_compra": 10465.0,
+      "merma_porcentaje": 2.0,
+      "unidad_base": "g",
+      "costo_por_unidad_base": 10.6786,
+      "notas": null
+    },
+    {
+      "id": 6,
+      "nombre": "Huevos (Maple 30u)",
+      "categoria": "ingrediente",
+      "unidad_compra": "pack",
+      "cantidad_compra": 30.0,
+      "precio_compra": 5000.0,
+      "merma_porcentaje": 0.0,
+      "unidad_base": "unidad",
+      "costo_por_unidad_base": 166.6667,
+      "notas": null
+    },
+    {
       "id": 7,
       "nombre": "Levadura Fresca",
       "categoria": "ingrediente",
@@ -57,6 +105,18 @@
       "merma_porcentaje": 3.0,
       "unidad_base": "g",
       "costo_por_unidad_base": 5.1546,
+      "notas": null
+    },
+    {
+      "id": 8,
+      "nombre": "Leche Entera",
+      "categoria": "ingrediente",
+      "unidad_compra": "litro",
+      "cantidad_compra": 1.0,
+      "precio_compra": 2187.0,
+      "merma_porcentaje": 0.0,
+      "unidad_base": "ml",
+      "costo_por_unidad_base": 2.187,
       "notas": null
     },
     {
@@ -93,6 +153,42 @@
       "merma_porcentaje": 0.0,
       "unidad_base": "g",
       "costo_por_unidad_base": 1.2,
+      "notas": null
+    },
+    {
+      "id": 13,
+      "nombre": "Azúcar Impalpable",
+      "categoria": "ingrediente",
+      "unidad_compra": "kg",
+      "cantidad_compra": 1.0,
+      "precio_compra": 2300.0,
+      "merma_porcentaje": 1.0,
+      "unidad_base": "g",
+      "costo_por_unidad_base": 2.3232,
+      "notas": null
+    },
+    {
+      "id": 14,
+      "nombre": "Chocolate Cobertura Semiamargo",
+      "categoria": "ingrediente",
+      "unidad_compra": "kg",
+      "cantidad_compra": 1.0,
+      "precio_compra": 9500.0,
+      "merma_porcentaje": 2.0,
+      "unidad_base": "g",
+      "costo_por_unidad_base": 9.6939,
+      "notas": null
+    },
+    {
+      "id": 15,
+      "nombre": "Bolsitas Polipropileno Cristal (15x25)",
+      "categoria": "packaging",
+      "unidad_compra": "pack",
+      "cantidad_compra": 100.0,
+      "precio_compra": 5085.0,
+      "merma_porcentaje": 0.0,
+      "unidad_base": "unidad",
+      "costo_por_unidad_base": 50.85,
       "notas": null
     },
     {
@@ -141,18 +237,6 @@
       "merma_porcentaje": 0.0,
       "unidad_base": "unidad",
       "costo_por_unidad_base": 20.0,
-      "notas": null
-    },
-    {
-      "id": 14,
-      "nombre": "Chocolate Cobertura Semiamargo",
-      "categoria": "ingrediente",
-      "unidad_compra": "kg",
-      "cantidad_compra": 1.0,
-      "precio_compra": 9500.0,
-      "merma_porcentaje": 2.0,
-      "unidad_base": "g",
-      "costo_por_unidad_base": 9.6939,
       "notas": null
     },
     {
@@ -288,78 +372,6 @@
       "notas": null
     },
     {
-      "id": 1,
-      "nombre": "Harina 0000",
-      "categoria": "ingrediente",
-      "unidad_compra": "kg",
-      "cantidad_compra": 1.0,
-      "precio_compra": 1471.0,
-      "merma_porcentaje": 1.0,
-      "unidad_base": "g",
-      "costo_por_unidad_base": 1.4859,
-      "notas": null
-    },
-    {
-      "id": 8,
-      "nombre": "Leche Entera",
-      "categoria": "ingrediente",
-      "unidad_compra": "litro",
-      "cantidad_compra": 1.0,
-      "precio_compra": 2187.0,
-      "merma_porcentaje": 0.0,
-      "unidad_base": "ml",
-      "costo_por_unidad_base": 2.187,
-      "notas": null
-    },
-    {
-      "id": 6,
-      "nombre": "Huevos (Maple 30u)",
-      "categoria": "ingrediente",
-      "unidad_compra": "pack",
-      "cantidad_compra": 30.0,
-      "precio_compra": 5000.0,
-      "merma_porcentaje": 0.0,
-      "unidad_base": "unidad",
-      "costo_por_unidad_base": 166.6667,
-      "notas": null
-    },
-    {
-      "id": 13,
-      "nombre": "Azúcar Impalpable",
-      "categoria": "ingrediente",
-      "unidad_compra": "kg",
-      "cantidad_compra": 1.0,
-      "precio_compra": 2300.0,
-      "merma_porcentaje": 1.0,
-      "unidad_base": "g",
-      "costo_por_unidad_base": 2.3232,
-      "notas": null
-    },
-    {
-      "id": 5,
-      "nombre": "Dulce de Leche Repostero",
-      "categoria": "ingrediente",
-      "unidad_compra": "kg",
-      "cantidad_compra": 1.0,
-      "precio_compra": 10465.0,
-      "merma_porcentaje": 2.0,
-      "unidad_base": "g",
-      "costo_por_unidad_base": 10.6786,
-      "notas": null
-    },
-    {
-      "id": 15,
-      "nombre": "Bolsitas Polipropileno Cristal (15x25)",
-      "categoria": "packaging",
-      "unidad_compra": "pack",
-      "cantidad_compra": 100.0,
-      "precio_compra": 5085.0,
-      "merma_porcentaje": 0.0,
-      "unidad_base": "unidad",
-      "costo_por_unidad_base": 50.85,
-      "notas": null
-    },
-    {
       "id": 31,
       "nombre": "Manzana Verde",
       "categoria": "ingrediente",
@@ -429,18 +441,6 @@
       "merma_porcentaje": 0.0,
       "unidad_base": "unidad",
       "costo_por_unidad_base": 352.4,
-      "notas": null
-    },
-    {
-      "id": 4,
-      "nombre": "Manteca",
-      "categoria": "ingrediente",
-      "unidad_compra": "g",
-      "cantidad_compra": 500.0,
-      "precio_compra": 7000.0,
-      "merma_porcentaje": 0.0,
-      "unidad_base": "g",
-      "costo_por_unidad_base": 14.0,
       "notas": null
     }
   ],
@@ -925,6 +925,56 @@
           "costo_packaging_unitario": 0.0,
           "costo_indirectos_unitario": 435.13,
           "costo_total_unitario": 4786.39
+        }
+      ]
+    }
+  ],
+  "presentaciones": [
+    {
+      "id": 1,
+      "nombre": "Bandeja Degustación Merienda",
+      "descripcion": "2 Alfajores de Maicena + 1 Cañoncito de DDL + 1 Bolsita de Palmeritas",
+      "categoria": "Packs & Bandejas",
+      "packaging_id": 16,
+      "cantidad_packaging": 1.0,
+      "margen_adicional": 0.0,
+      "precio_venta_fijado": null,
+      "redondeo_multiplo": 50,
+      "activo": 1,
+      "items": [
+        {
+          "receta_id": 6,
+          "cantidad": 2.0,
+          "notas": null
+        },
+        {
+          "receta_id": 5,
+          "cantidad": 1.0,
+          "notas": null
+        },
+        {
+          "receta_id": 4,
+          "cantidad": 1.0,
+          "notas": null
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "nombre": "Bandeja x 6 Alfajorcitos de Maicena",
+      "descripcion": "Media docena de alfajores artesanales con dulce de leche y coco",
+      "categoria": "Cajas & Docenas",
+      "packaging_id": 16,
+      "cantidad_packaging": 1.0,
+      "margen_adicional": 0.0,
+      "precio_venta_fijado": null,
+      "redondeo_multiplo": 50,
+      "activo": 1,
+      "items": [
+        {
+          "receta_id": 6,
+          "cantidad": 6.0,
+          "notas": null
         }
       ]
     }

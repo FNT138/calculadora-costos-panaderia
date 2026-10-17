@@ -206,3 +206,70 @@ class ConfiguracionUpdate(BaseModel):
     costo_hora_defecto: Optional[float] = None
     margen_defecto: Optional[float] = None
     porcentaje_servicios_defecto: Optional[float] = None
+
+
+# ----------------- PRESENTACIONES DE VENTA & PACKS -----------------
+class PresentacionItemInput(BaseModel):
+    receta_id: int
+    cantidad: float = Field(..., gt=0, example=2.0)
+    notas: Optional[str] = None
+
+class PresentacionItemOut(BaseModel):
+    id: int
+    receta_id: int
+    receta_nombre: str
+    receta_categoria: Optional[str] = None
+    cantidad: float
+    costo_unitario_receta: float
+    costo_total_item: float
+    precio_sugerido_unitario: float
+    precio_sugerido_item: float
+    notas: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class PresentacionBase(BaseModel):
+    nombre: str = Field(..., example="Bandeja Degustación Merienda")
+    descripcion: Optional[str] = None
+    categoria: str = Field(default="Packs & Bandejas", example="Packs & Bandejas")
+    packaging_id: Optional[int] = None
+    cantidad_packaging: float = Field(default=1.0, ge=0)
+    margen_adicional: float = Field(default=0.0, ge=0)
+    precio_venta_fijado: Optional[float] = None
+    redondeo_multiplo: int = Field(default=50, example=50) # 5, 10, 50, 100
+    activo: Optional[int] = 1
+
+class PresentacionCreate(PresentacionBase):
+    items: List[PresentacionItemInput] = []
+
+class PresentacionUpdate(BaseModel):
+    nombre: Optional[str] = None
+    descripcion: Optional[str] = None
+    categoria: Optional[str] = None
+    packaging_id: Optional[int] = None
+    cantidad_packaging: Optional[float] = None
+    margen_adicional: Optional[float] = None
+    precio_venta_fijado: Optional[float] = None
+    redondeo_multiplo: Optional[int] = None
+    activo: Optional[int] = None
+    items: Optional[List[PresentacionItemInput]] = None
+
+class PresentacionOut(PresentacionBase):
+    id: int
+    packaging_nombre: Optional[str] = None
+    costo_packaging_unitario: float = 0.0
+    costo_packaging_total: float = 0.0
+    costo_productos_total: float = 0.0
+    costo_total_presentacion: float = 0.0
+    precio_base_calculado: float = 0.0
+    precio_venta_redondeado: float = 0.0
+    precio_venta_final: float = 0.0
+    ganancia_neta: float = 0.0
+    margen_porcentaje: float = 0.0
+    items: List[PresentacionItemOut] = []
+    fecha_creacion: Optional[datetime] = None
+    fecha_actualizacion: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

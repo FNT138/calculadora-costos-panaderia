@@ -1,5 +1,6 @@
-from typing import Tuple, List
-from .models import Receta, Insumo, Configuracion
+import math
+from typing import Tuple, List, Dict, Any
+from .models import Receta, Insumo, Configuracion, PresentacionVenta
 from .schemas import DesgloseCostos, PuntoCurvaGanancia, SimuladorAnalisis
 
 def get_config_val(db, clave: str, default: float) -> float:
@@ -143,3 +144,102 @@ def generar_curva_sensibilidad(receta: Receta, desglose: DesgloseCostos) -> Tupl
         ))
 
     return curva, precio_optimo
+
+
+def redondear_hacia_arriba(precio: float, multiplo: int = 50) -> float:
+    """
+    Redondea un precio hacia arriba (ceiling) al múltiplo indicado (5, 10, 50, 100, etc.).
+    Ejemplo: 1234 con múltiplo 10 -> 1240; con múltiplo 50 -> 1250.
+    """
+    if not multiplo or multiplo <= 0:
+        return float(math.ceil(precio))
+    return float(math.ceil(precio / multiplo) * multiplo)
+
+
+def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: float = 20000.0) -> Dict[str, Any]:
+    """
+    Calcula el costo total de los productos incluidos, el costo de packaging,
+    el precio base sugerido, el precio redondeado hacia arriba y las ganancias netas del pack.
+    """
+    costo_productos = 0.0
+    precio_productos = 0.0
+    items_desglose = []
+
+    for it in presentacion.items:
+        receta = it.receta
+        if not receta:
+            continue
+        desglose_rec = calcular_desglose_receta(receta, valor_hora=valor_hora)
+        costo_u = desglose_rec.costo_total_unitario
+        # Precio unitario base de la receta (si tiene fijado, lo toma; si no, el sugerido)
+        precio_u = receta.precio_venta_fijado if (receta.precio_venta_fijado and receta.precio_venta_fijado > 0) else desglose_rec.precio_sugerido
+        
+        cant = it.cantidad if it.cantidad > 0 else 1.0
+        subtot_costo = round(costo_u * cant, 2)
+        subtot_precio = round(precio_u * cant, 2)
+
+        costo_productos += subtot_costo
+        precio_productos += subtot_precio
+
+        items_desglose.append({
+            "id": it.id,
+            "receta_id": it.receta_id,
+            "receta_nombre": receta.nombre,
+            "receta_categoria": receta.categoria,
+            "cantidad": cant,
+            "costo_unitario_receta": round(costo_u, 2),
+            "costo_total_item": subtot_costo,
+            "precio_sugerido_unitario": round(precio_u, 2),
+            "precio_sugerido_item": subtot_precio,
+            "notas": it.notas
+        })
+
+    # Packaging
+    costo_packaging_unit = 0.0
+    packaging_nombre = None
+    if presentacion.packaging:
+        pkg = presentacion.packaging
+        packaging_nombre = pkg.nombre
+        costo_base_pkg = pkg.costo_por_unidad_base
+        if costo_base_pkg <= 0:
+            costo_base_pkg = pkg.calcular_costo_base()
+        costo_packaging_unit = costo_base_pkg
+
+    cant_pkg = presentacion.cantidad_packaging if presentacion.cantidad_packaging is not None else 1.0
+    costo_packaging_total = round(costo_packaging_unit * cant_pkg, 2)
+
+    costo_total = round(costo_productos + costo_packaging_total, 2)
+
+    # Margen adicional sobre el pack si está configurado
+    margen_extra = (presentacion.margen_adicional or 0.0) / 100.0
+    # Precio base: suma de precios de los productos + packaging con margen
+    precio_base_calculado = round((precio_productos + (costo_packaging_total * 1.5)) * (1.0 + margen_extra), 2)
+    if precio_base_calculado <= 0:
+        precio_base_calculado = round(costo_total * 1.6, 2)
+
+    # Redondeo comercial hacia arriba al múltiplo (5, 10, 50, 100)
+    multiplo = presentacion.redondeo_multiplo or 50
+    precio_redondeado = redondear_hacia_arriba(precio_base_calculado, multiplo)
+
+    # Precio final: si el usuario fijó manualmente un precio, respetarlo; de lo contrario, el redondeado
+    if presentacion.precio_venta_fijado is not None and presentacion.precio_venta_fijado > 0:
+        precio_final = presentacion.precio_venta_fijado
+    else:
+        precio_final = precio_redondeado
+
+    ganancia_neta = round(precio_final - costo_total, 2)
+    margen_pct = round((ganancia_neta / costo_total * 100.0), 1) if costo_total > 0 else 0.0
+
+    return {
+        "packaging_nombre": packaging_nombre,
+        "costo_packaging_unitario": round(costo_packaging_unit, 2),
+        "costo_packaging_total": costo_packaging_total,
+        "costo_productos_total": round(costo_productos, 2),
+        "costo_total_presentacion": costo_total,
+        "precio_base_calculado": precio_base_calculado,
+        "precio_venta_redondeado": precio_redondeado,
+        "precio_venta_final": precio_final,
+        "ganancia_neta": ganancia_neta,
+        "margen_porcentaje": margen_pct,
+        "items": items_desglose
+    }
