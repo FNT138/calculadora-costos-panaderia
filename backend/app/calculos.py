@@ -217,8 +217,8 @@ def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: 
     if precio_base_calculado <= 0:
         precio_base_calculado = round(costo_total * 1.6, 2)
 
-    # Redondeo comercial hacia arriba al múltiplo (5, 10, 50, 100)
-    multiplo = presentacion.redondeo_multiplo or 50
+    # Redondeo comercial hacia arriba al múltiplo (1000 al millar, 500, 5000, 100)
+    multiplo = presentacion.redondeo_multiplo if (presentacion.redondeo_multiplo and presentacion.redondeo_multiplo > 0) else 1000
     precio_redondeado = redondear_hacia_arriba(precio_base_calculado, multiplo)
 
     # Precio final: si el usuario fijó manualmente un precio, respetarlo; de lo contrario, el redondeado
@@ -230,6 +230,9 @@ def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: 
     ganancia_neta = round(precio_final - costo_total, 2)
     margen_pct = round((ganancia_neta / costo_total * 100.0), 1) if costo_total > 0 else 0.0
 
+    # Precio expresado en miles (ej. $30.000 -> 30, $24.000 -> 24)
+    precio_venta_miles = round(precio_final / 1000.0, 1)
+
     return {
         "packaging_nombre": packaging_nombre,
         "costo_packaging_unitario": round(costo_packaging_unit, 2),
@@ -239,6 +242,7 @@ def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: 
         "precio_base_calculado": precio_base_calculado,
         "precio_venta_redondeado": precio_redondeado,
         "precio_venta_final": precio_final,
+        "precio_venta_miles": precio_venta_miles,
         "ganancia_neta": ganancia_neta,
         "margen_porcentaje": margen_pct,
         "items": items_desglose

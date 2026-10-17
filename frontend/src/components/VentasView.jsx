@@ -33,6 +33,7 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
   const [busqueda, setBusqueda] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [filtroRedondeo, setFiltroRedondeo] = useState('todos');
+  const [mostrarEnMiles, setMostrarEnMiles] = useState(false); // Alternar entre $30.000 y $30
 
   // Modales
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,7 +49,7 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
     cantidad_packaging: 1,
     margen_adicional: 0,
     precio_venta_fijado: '',
-    redondeo_multiplo: 50,
+    redondeo_multiplo: 1000, // Por defecto al millar ($1.000: ej. $23.654 -> $24.000 / 24 mil)
     items: []
   });
 
@@ -98,7 +99,7 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
         cantidad_packaging: pres.cantidad_packaging ?? 1,
         margen_adicional: pres.margen_adicional ?? 0,
         precio_venta_fijado: pres.precio_venta_fijado ?? '',
-        redondeo_multiplo: pres.redondeo_multiplo ?? 50,
+        redondeo_multiplo: pres.redondeo_multiplo ?? 1000,
         items: pres.items && pres.items.length > 0 
           ? pres.items.map(it => ({
               receta_id: it.receta_id,
@@ -117,7 +118,7 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
         cantidad_packaging: 1,
         margen_adicional: 0,
         precio_venta_fijado: '',
-        redondeo_multiplo: 50,
+        redondeo_multiplo: 1000,
         items: recetas.length > 0 ? [{ receta_id: recetas[0].id, cantidad: 1, notas: '' }] : []
       });
     }
@@ -184,7 +185,7 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
     let precioBase = (precioBaseProductos + (costoPkg * 1.5)) * (1 + margenExtra);
     if (precioBase <= 0) precioBase = costoTotal * 1.6;
 
-    const mult = Number(formData.redondeo_multiplo) || 50;
+    const mult = Number(formData.redondeo_multiplo) || 1000;
     const precioRedondeado = mult > 0 ? Math.ceil(precioBase / mult) * mult : Math.ceil(precioBase);
     
     const precioFijadoNum = Number(formData.precio_venta_fijado);
@@ -226,7 +227,7 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
         cantidad_packaging: Number(formData.cantidad_packaging) || 1.0,
         margen_adicional: Number(formData.margen_adicional) || 0.0,
         precio_venta_fijado: formData.precio_venta_fijado ? Number(formData.precio_venta_fijado) : null,
-        redondeo_multiplo: Number(formData.redondeo_multiplo) || 50,
+        redondeo_multiplo: Number(formData.redondeo_multiplo) || 1000,
         items: formData.items.map(it => ({
           receta_id: Number(it.receta_id),
           cantidad: Number(it.cantidad) || 1.0,
@@ -339,8 +340,36 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
         </form>
 
-        {/* Filtros de Categoría y Redondeo */}
+        {/* Filtros de Categoría, Redondeo y Formato de Precio */}
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Alternar formato $30.000 vs $30 (en miles) */}
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setMostrarEnMiles(false)}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                !mostrarEnMiles 
+                  ? 'bg-white text-emerald-800 shadow-2xs font-bold' 
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Mostrar precios completos en pesos (ej. $30.000)"
+            >
+              $30.000
+            </button>
+            <button
+              type="button"
+              onClick={() => setMostrarEnMiles(true)}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                mostrarEnMiles 
+                  ? 'bg-white text-emerald-800 shadow-2xs font-bold' 
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Mostrar precios abreviados en miles (ej. $30)"
+            >
+              $30 (miles)
+            </button>
+          </div>
+
           {/* Categoría */}
           <select
             value={filtroCategoria}
@@ -360,10 +389,11 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
             className="px-3 py-2 rounded-xl text-xs bg-slate-50 border border-slate-200 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
           >
             <option value="todos">Todos los Redondeos</option>
-            <option value="5">Múltiplo de $5</option>
-            <option value="10">Múltiplo de $10</option>
-            <option value="50">Múltiplo de $50</option>
+            <option value="1000">Al millar ($1.000)</option>
+            <option value="500">Al medio millar ($500)</option>
+            <option value="5000">Múltiplo de $5.000</option>
             <option value="100">Múltiplo de $100</option>
+            <option value="50">Múltiplo de $50</option>
           </select>
         </div>
       </div>
@@ -413,7 +443,7 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
                     </span>
 
                     <span className="text-[10px] font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
-                      Redondeo mult. ${p.redondeo_multiplo}
+                      {p.redondeo_multiplo >= 1000 ? `Al millar ($${p.redondeo_multiplo})` : `Redondeo $${p.redondeo_multiplo}`}
                     </span>
                   </div>
 
@@ -493,13 +523,32 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
                     <div className="flex items-center justify-between text-[11px] font-bold text-emerald-100 uppercase tracking-wider">
                       <span>Precio al Público</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/20">
-                        {p.precio_venta_fijado ? 'Precio Manual' : `Redondeo $${p.redondeo_multiplo}`}
+                        {p.precio_venta_fijado ? 'Precio Manual' : (p.redondeo_multiplo >= 1000 ? 'Al millar' : `Redondeo $${p.redondeo_multiplo}`)}
                       </span>
                     </div>
-                    <div className="text-3xl font-black tracking-tight text-white">
-                      $ {p.precio_venta_final?.toLocaleString('es-AR')}
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-emerald-100 pt-1 border-t border-white/20 font-medium">
+                    
+                    {mostrarEnMiles ? (
+                      <div>
+                        <div className="text-3xl font-black tracking-tight text-white flex items-baseline space-x-1">
+                          <span>$ {Math.round(p.precio_venta_final / 1000)}</span>
+                          <span className="text-sm font-bold text-emerald-200">mil</span>
+                        </div>
+                        <span className="text-[10px] text-emerald-100 font-medium block">
+                          ${p.precio_venta_final?.toLocaleString('es-AR')} exactos · sin cambio
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="text-3xl font-black tracking-tight text-white flex items-baseline space-x-2">
+                          <span>$ {p.precio_venta_final?.toLocaleString('es-AR')}</span>
+                        </div>
+                        <span className="text-[11px] text-emerald-100 font-bold block">
+                          ({Math.round(p.precio_venta_final / 1000)} mil) · sin cambio chico
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-xs text-emerald-100 pt-1.5 border-t border-white/20 font-medium">
                       <span>Ganancia neta: <b>${p.ganancia_neta?.toLocaleString('es-AR')}</b></span>
                       <span className="bg-emerald-950/30 px-2 py-0.5 rounded-lg font-black text-emerald-200">
                         +{p.margen_porcentaje}%
@@ -610,10 +659,11 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
                     onChange={(e) => setFormData({ ...formData, redondeo_multiplo: Number(e.target.value) })}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 text-xs sm:text-sm font-bold focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
-                    <option value="5">Múltiplo de $5 (ej. $1.234 ➔ $1.235)</option>
-                    <option value="10">Múltiplo de $10 (ej. $1.234 ➔ $1.240)</option>
-                    <option value="50">Múltiplo de $50 (ej. $1.234 ➔ $1.250)</option>
-                    <option value="100">Múltiplo de $100 (ej. $1.234 ➔ $1.300)</option>
+                    <option value="1000">Al millar ($1.000) ➔ ej. 23.654 ➔ 24 ($24.000 / 24 mil) [Recomendado]</option>
+                    <option value="500">Al medio millar ($500) ➔ ej. 23.100 ➔ $23.500</option>
+                    <option value="5000">A cinco mil ($5.000) ➔ ej. 23.654 ➔ $25.000</option>
+                    <option value="100">A la centena ($100) ➔ ej. 23.654 ➔ $23.700</option>
+                    <option value="50">A cincuenta ($50) ➔ ej. 23.654 ➔ $23.700</option>
                   </select>
                 </div>
 
@@ -817,9 +867,15 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
                     <span className="text-[10px] uppercase font-bold text-emerald-200 block">
                       Precio de Venta Redondeado al Público:
                     </span>
-                    <div className="text-2xl font-black">
-                      $ {resumenVivo.precioFinal.toLocaleString('es-AR')}
+                    <div className="text-2xl font-black flex items-baseline space-x-2">
+                      <span>$ {resumenVivo.precioFinal.toLocaleString('es-AR')}</span>
+                      <span className="text-base font-bold text-emerald-200">
+                        ({Math.round(resumenVivo.precioFinal / 1000)} mil)
+                      </span>
                     </div>
+                    <span className="text-[10px] text-emerald-200 block mt-0.5">
+                      Para cobrar redondo y no lidiar con cambio chico.
+                    </span>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] uppercase font-bold text-emerald-200 block">

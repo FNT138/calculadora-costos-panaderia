@@ -58,6 +58,7 @@ def format_presentacion_out(p: PresentacionVenta, valor_hora: float) -> Presenta
         precio_base_calculado=calc["precio_base_calculado"],
         precio_venta_redondeado=calc["precio_venta_redondeado"],
         precio_venta_final=calc["precio_venta_final"],
+        precio_venta_miles=calc["precio_venta_miles"],
         ganancia_neta=calc["ganancia_neta"],
         margen_porcentaje=calc["margen_porcentaje"],
         items=items_out,
@@ -122,7 +123,7 @@ def crear_presentacion(data: PresentacionCreate, db: Session = Depends(get_db)):
         cantidad_packaging=data.cantidad_packaging if data.cantidad_packaging is not None else 1.0,
         margen_adicional=data.margen_adicional or 0.0,
         precio_venta_fijado=data.precio_venta_fijado,
-        redondeo_multiplo=data.redondeo_multiplo or 50,
+        redondeo_multiplo=data.redondeo_multiplo or 1000,
         activo=data.activo if data.activo is not None else 1
     )
     db.add(nueva)
@@ -249,6 +250,7 @@ def exportar_lista_precios_csv(db: Session = Depends(get_db)):
         "Precio Base Calculado ($)",
         "Múltiplo Redondeo",
         "PRECIO DE VENTA ($)",
+        "PRECIO EN MILES ($k)",
         "Ganancia Neta ($)",
         "Margen (%)"
     ])
@@ -257,6 +259,7 @@ def exportar_lista_precios_csv(db: Session = Depends(get_db)):
         calc = calcular_desglose_presentacion(p, valor_hora=valor_hora)
         contenido_str = ", ".join([f"{it['cantidad']}x {it['receta_nombre']}" for it in calc["items"]])
         pkg_str = f"{p.cantidad_packaging}x {calc['packaging_nombre']}" if calc['packaging_nombre'] else "Sin packaging adicional"
+        miles_val = int(calc['precio_venta_miles']) if calc['precio_venta_miles'].is_integer() else calc['precio_venta_miles']
 
         writer.writerow([
             p.categoria,
@@ -267,6 +270,7 @@ def exportar_lista_precios_csv(db: Session = Depends(get_db)):
             f"{calc['precio_base_calculado']:.2f}",
             f"${p.redondeo_multiplo}",
             f"{calc['precio_venta_final']:.2f}",
+            f"{miles_val}",
             f"{calc['ganancia_neta']:.2f}",
             f"{calc['margen_porcentaje']:.1f}%"
         ])

@@ -237,7 +237,7 @@ class PresentacionBase(BaseModel):
     cantidad_packaging: float = Field(default=1.0, ge=0)
     margen_adicional: float = Field(default=0.0, ge=0)
     precio_venta_fijado: Optional[float] = None
-    redondeo_multiplo: int = Field(default=50, example=50) # 5, 10, 50, 100
+    redondeo_multiplo: int = Field(default=1000, example=1000) # 1000 (al millar: ej. $23.654 -> $24.000 / 24 mil), 500, 5000, 100
     activo: Optional[int] = 1
 
 class PresentacionCreate(PresentacionBase):
@@ -265,6 +265,7 @@ class PresentacionOut(PresentacionBase):
     precio_base_calculado: float = 0.0
     precio_venta_redondeado: float = 0.0
     precio_venta_final: float = 0.0
+    precio_venta_miles: float = 0.0 # ej. 24.0 para $24.000, 30.0 para $30.000
     ganancia_neta: float = 0.0
     margen_porcentaje: float = 0.0
     items: List[PresentacionItemOut] = []

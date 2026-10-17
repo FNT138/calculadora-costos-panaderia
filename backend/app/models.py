@@ -141,7 +141,7 @@ class PresentacionVenta(Base):
     cantidad_packaging = Column(Float, nullable=False, default=1.0)
     margen_adicional = Column(Float, nullable=False, default=0.0) # Margen adicional opcional (%)
     precio_venta_fijado = Column(Float, nullable=True) # Precio manual si se desea sobreescribir
-    redondeo_multiplo = Column(Integer, nullable=False, default=50) # 5, 10, 50, 100
+    redondeo_multiplo = Column(Integer, nullable=False, default=1000) # 1000 (al millar: ej. $23.654 -> $24.000 / 24 mil), 500, 5000, 100
     activo = Column(Integer, nullable=False, default=1) # 1 activo, 0 inactivo
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
     fecha_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

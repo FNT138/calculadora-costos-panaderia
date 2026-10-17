@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-17T00:37:48.419342",
+  "timestamp": "2026-10-17T01:06:02.022524",
   "configuraciones": [
     {
       "clave": "costo_hora_defecto",
@@ -939,7 +939,7 @@
       "cantidad_packaging": 1.0,
       "margen_adicional": 0.0,
       "precio_venta_fijado": null,
-      "redondeo_multiplo": 50,
+      "redondeo_multiplo": 1000,
       "activo": 1,
       "items": [
         {
@@ -968,7 +968,7 @@
       "cantidad_packaging": 1.0,
       "margen_adicional": 0.0,
       "precio_venta_fijado": null,
-      "redondeo_multiplo": 50,
+      "redondeo_multiplo": 1000,
       "activo": 1,
       "items": [
         {
