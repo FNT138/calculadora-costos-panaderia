@@ -33,6 +33,17 @@ class InsumoOut(InsumoBase):
     class Config:
         from_attributes = True
 
+class InsumoBulkItemUpdate(BaseModel):
+    id: int
+    precio_compra: float = Field(..., ge=0)
+    cantidad_compra: Optional[float] = Field(default=None, gt=0)
+    merma_porcentaje: Optional[float] = Field(default=None, ge=0, lt=100)
+
+class InsumoBulkUpdateRequest(BaseModel):
+    items: List[InsumoBulkItemUpdate] = []
+    porcentaje_aumento_global: Optional[float] = None
+    categoria_filtro: Optional[str] = None
+
 
 # ----------------- RECETA INGREDIENTES -----------------
 class RecetaIngredienteCreate(BaseModel):
@@ -61,6 +72,7 @@ class RecetaBase(BaseModel):
     categoria: Optional[str] = Field(default="General", example="Facturas")
     descripcion: Optional[str] = None
     rendimiento_unidades: float = Field(default=1.0, gt=0, example=24.0)
+    unidad_rendimiento: Optional[str] = Field(default="unidad", example="alfajor")
     tiempo_preparacion_minutos: float = Field(default=60.0, ge=0, example=45.0)
     porcentaje_costos_indirectos: float = Field(default=10.0, ge=0, example=10.0)
     margen_ganancia_sugerido: float = Field(default=60.0, ge=0, example=60.0)
@@ -74,6 +86,7 @@ class RecetaUpdate(BaseModel):
     categoria: Optional[str] = None
     descripcion: Optional[str] = None
     rendimiento_unidades: Optional[float] = None
+    unidad_rendimiento: Optional[str] = None
     tiempo_preparacion_minutos: Optional[float] = None
     porcentaje_costos_indirectos: Optional[float] = None
     margen_ganancia_sugerido: Optional[float] = None
@@ -84,6 +97,10 @@ class DesgloseCostos(BaseModel):
     costo_ingredientes_tanda: float
     costo_packaging_tanda: float
     costo_materia_prima_tanda: float
+    costo_indirectos_tanda: float = 0.0
+    costo_total_tanda: float = 0.0
+    precio_sugerido_tanda: float = 0.0
+    ganancia_sugerida_tanda: float = 0.0
     
     costo_ingredientes_unitario: float
     costo_packaging_unitario: float

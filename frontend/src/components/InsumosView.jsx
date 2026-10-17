@@ -11,7 +11,11 @@ import {
   Sparkles,
   Wheat,
   Box,
-  Lock
+  Lock,
+  Zap,
+  Save,
+  Percent,
+  RotateCcw
 } from 'lucide-react';
 import { api } from '../api';
 
@@ -20,6 +24,12 @@ export default function InsumosView({ onNotify, isAdmin, onRequirePin }) {
   const [loading, setLoading] = useState(true);
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [busqueda, setBusqueda] = useState('');
+
+  // Modo Ticket / Edición Rápida Masiva
+  const [modoTicket, setModoTicket] = useState(false);
+  const [draftEdits, setDraftEdits] = useState({}); // { [id]: { precio_compra, cantidad_compra, merma_porcentaje } }
+  const [porcentajeMasivo, setPorcentajeMasivo] = useState('10');
+  const [savingBulk, setSavingBulk] = useState(false);
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,6 +65,116 @@ export default function InsumosView({ onNotify, isAdmin, onRequirePin }) {
     }, 250);
     return () => clearTimeout(delayDebounce);
   }, [filtroCategoria, busqueda]);
+
+  const handleToggleModoTicket = () => {
+    if (!modoTicket && !isAdmin) {
+      if (onRequirePin) onRequirePin();
+      return;
+    }
+    if (!modoTicket) {
+      const initial = {};
+      insumos.forEach(ins => {
+        initial[ins.id] = {
+          precio_compra: ins.precio_compra,
+          cantidad_compra: ins.cantidad_compra,
+          merma_porcentaje: ins.merma_porcentaje || 0
+        };
+      });
+      setDraftEdits(initial);
+      setModoTicket(true);
+    } else {
+      setModoTicket(false);
+      setDraftEdits({});
+    }
+  };
+
+  const handleDraftChange = (id, field, value) => {
+    const insOrig = insumos.find(i => i.id === id);
+    setDraftEdits(prev => ({
+      ...prev,
+      [id]: {
+        precio_compra: prev[id]?.precio_compra ?? insOrig?.precio_compra ?? 0,
+        cantidad_compra: prev[id]?.cantidad_compra ?? insOrig?.cantidad_compra ?? 1,
+        merma_porcentaje: prev[id]?.merma_porcentaje ?? insOrig?.merma_porcentaje ?? 0,
+        [field]: value
+      }
+    }));
+  };
+
+  const handleAplicarPorcentajeEnBorrador = (pctNum) => {
+    const pct = Number(pctNum);
+    if (isNaN(pct) || pct === 0) return;
+    const factor = 1 + (pct / 100);
+    setDraftEdits(prev => {
+      const next = { ...prev };
+      insumos.forEach(ins => {
+        const actualPrecio = Number(next[ins.id]?.precio_compra ?? ins.precio_compra) || 0;
+        next[ins.id] = {
+          precio_compra: Math.round(actualPrecio * factor),
+          cantidad_compra: next[ins.id]?.cantidad_compra ?? ins.cantidad_compra,
+          merma_porcentaje: next[ins.id]?.merma_porcentaje ?? (ins.merma_porcentaje || 0)
+        };
+      });
+      return next;
+    });
+    onNotify(`Se pre-aplicó un ${pct > 0 ? '+' : ''}${pct}% en la tabla. Revisá y pulsá "Guardar Cambios".`, 'info');
+  };
+
+  const getModifiedItems = () => {
+    const modified = [];
+    insumos.forEach(ins => {
+      const d = draftEdits[ins.id];
+      if (!d) return;
+      const pNuevo = Number(d.precio_compra);
+      const cNuevo = Number(d.cantidad_compra);
+      const mNuevo = Number(d.merma_porcentaje);
+      if (
+        pNuevo !== ins.precio_compra ||
+        cNuevo !== ins.cantidad_compra ||
+        mNuevo !== (ins.merma_porcentaje || 0)
+      ) {
+        modified.push({
+          id: ins.id,
+          precio_compra: pNuevo,
+          cantidad_compra: cNuevo,
+          merma_porcentaje: mNuevo
+        });
+      }
+    });
+    return modified;
+  };
+
+  const handleSaveBulk = async () => {
+    const modified = getModifiedItems();
+    if (modified.length === 0) {
+      onNotify('No hay cambios pendientes por guardar', 'info');
+      return;
+    }
+    try {
+      setSavingBulk(true);
+      await api.bulkUpdateInsumos({ items: modified });
+      onNotify(`¡${modified.length} insumos actualizados! Todas las recetas y packs fueron recalculados.`, 'success');
+      setModoTicket(false);
+      setDraftEdits({});
+      cargarInsumos();
+    } catch (err) {
+      onNotify('Error al guardar precios masivos: ' + err.message, 'error');
+    } finally {
+      setSavingBulk(false);
+    }
+  };
+
+  const calcularCostoBaseEnVivo = (ins, draft) => {
+    const cant = Number(draft?.cantidad_compra ?? ins.cantidad_compra) || 1;
+    const precio = Number(draft?.precio_compra ?? ins.precio_compra) || 0;
+    const merma = Number(draft?.merma_porcentaje ?? ins.merma_porcentaje) || 0;
+    const u = (ins.unidad_compra || 'kg').toLowerCase().trim();
+    let cantBase = cant;
+    if (['kg', 'kilo', 'kilos', 'litro', 'l', 'litros'].includes(u)) cantBase = cant * 1000;
+    else if (['docena', 'docenas'].includes(u)) cantBase = cant * 12;
+    const aprov = Math.max(0.01, 1 - (merma / 100));
+    return cantBase > 0 ? (precio / cantBase) / aprov : 0;
+  };
 
   const handleOpenModal = (insumo = null) => {
     if (!isAdmin) {
@@ -237,6 +357,7 @@ export default function InsumosView({ onNotify, isAdmin, onRequirePin }) {
 
   const preview = calcularPreviewCosto();
   const etiquetaCantidad = getEtiquetaCantidad();
+  const modifiedCount = modoTicket ? getModifiedItems().length : 0;
 
   return (
     <div className="space-y-6">
@@ -255,14 +376,91 @@ export default function InsumosView({ onNotify, isAdmin, onRequirePin }) {
           </p>
         </div>
 
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center justify-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-amber-500/15 whitespace-nowrap shrink-0 transition-all cursor-pointer"
-        >
-          {isAdmin ? <Plus className="w-4 h-4 shrink-0" /> : <Lock className="w-3.5 h-3.5 text-amber-200 shrink-0" />}
-          <span>Nuevo Insumo</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleToggleModoTicket}
+            className={`flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black whitespace-nowrap shrink-0 transition-all cursor-pointer border ${
+              modoTicket
+                ? 'bg-slate-900 text-amber-300 border-slate-900 shadow-md'
+                : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-200'
+            }`}
+          >
+            <Zap className={`w-4 h-4 shrink-0 ${modoTicket ? 'text-amber-400' : 'text-amber-600'}`} />
+            <span>{modoTicket ? 'Salir de Modo Ticket' : 'Edición Rápida (Modo Ticket)'}</span>
+          </button>
+
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center justify-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-amber-500/15 whitespace-nowrap shrink-0 transition-all cursor-pointer"
+          >
+            {isAdmin ? <Plus className="w-4 h-4 shrink-0" /> : <Lock className="w-3.5 h-3.5 text-amber-200 shrink-0" />}
+            <span>Nuevo Insumo</span>
+          </button>
+        </div>
       </div>
+
+      {/* Barra de Ajuste Masivo cuando Modo Ticket está activo */}
+      {modoTicket && (
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white p-4 sm:p-5 rounded-3xl shadow-lg flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center space-x-2 text-amber-300 font-black text-xs uppercase tracking-wider">
+              <Zap className="w-4 h-4" />
+              <span>Modo Ticket Mayorista — Edición Rápida en Tabla</span>
+            </div>
+            <p className="text-xs text-slate-300">
+              Cambiá los precios directamente fila por fila usando <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-amber-200">Tab</kbd> o aplicá un porcentaje de aumento general y guardá todo de una sola vez.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {/* Botones rápidos de % inflación */}
+            <div className="flex items-center bg-white/10 p-1 rounded-xl border border-white/15 space-x-1">
+              <span className="text-[11px] font-bold text-slate-300 px-2">Aumento %:</span>
+              {[5, 10, 15].map(pct => (
+                <button
+                  key={pct}
+                  type="button"
+                  onClick={() => handleAplicarPorcentajeEnBorrador(pct)}
+                  className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-amber-500 hover:text-slate-950 text-xs font-black transition-all cursor-pointer"
+                >
+                  +{pct}%
+                </button>
+              ))}
+              <div className="flex items-center space-x-1 pl-1">
+                <input
+                  type="number"
+                  step="any"
+                  value={porcentajeMasivo}
+                  onChange={(e) => setPorcentajeMasivo(e.target.value)}
+                  className="w-14 px-2 py-1 text-xs font-black text-slate-900 bg-white rounded-lg text-center outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAplicarPorcentajeEnBorrador(porcentajeMasivo)}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all cursor-pointer"
+                >
+                  Aplicar %
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSaveBulk}
+              disabled={savingBulk || modifiedCount === 0}
+              className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black text-xs flex items-center space-x-2 shadow-md transition-all cursor-pointer"
+            >
+              <Save className="w-4 h-4" />
+              <span>
+                {savingBulk
+                  ? 'Guardando...'
+                  : `Guardar Todo (${modifiedCount} ${modifiedCount === 1 ? 'cambio' : 'cambios'})`}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Barra de filtros y buscador */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
@@ -313,7 +511,7 @@ export default function InsumosView({ onNotify, isAdmin, onRequirePin }) {
         </div>
       </div>
 
-      {/* Lista de insumos en tarjetas responsive */}
+      {/* Lista de insumos: Tabla Modo Ticket o Tarjetas responsive */}
       {loading ? (
         <div className="text-center py-12 text-slate-400">Cargando catálogo...</div>
       ) : insumos.length === 0 ? (
@@ -321,6 +519,109 @@ export default function InsumosView({ onNotify, isAdmin, onRequirePin }) {
           <Package className="w-12 h-12 mx-auto text-slate-300 mb-2" />
           <p className="text-slate-600 font-medium">No se encontraron insumos</p>
           <p className="text-xs text-slate-400 mt-1">Crea tu primer ingrediente o packaging con el botón superior.</p>
+        </div>
+      ) : modoTicket ? (
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-100 border-b border-slate-200 text-[11px] font-black uppercase tracking-wider text-slate-600">
+                  <th className="py-3 px-4">Insumo / Packaging</th>
+                  <th className="py-3 px-3 text-center">Cant. Compra</th>
+                  <th className="py-3 px-3">Precio Pagado ($)</th>
+                  <th className="py-3 px-3 text-center">Merma (%)</th>
+                  <th className="py-3 px-4 text-right">Costo por Unidad Base</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {insumos.map((ins) => {
+                  const isPackaging = ins.categoria === 'packaging';
+                  const d = draftEdits[ins.id] || {
+                    precio_compra: ins.precio_compra,
+                    cantidad_compra: ins.cantidad_compra,
+                    merma_porcentaje: ins.merma_porcentaje || 0
+                  };
+                  const isChanged =
+                    Number(d.precio_compra) !== ins.precio_compra ||
+                    Number(d.cantidad_compra) !== ins.cantidad_compra ||
+                    Number(d.merma_porcentaje) !== (ins.merma_porcentaje || 0);
+                  const nuevoCostoBase = calcularCostoBaseEnVivo(ins, d);
+
+                  return (
+                    <tr
+                      key={ins.id}
+                      className={`transition-colors ${
+                        isChanged ? 'bg-amber-50/70' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <td className="py-2.5 px-4">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm">{isPackaging ? '📦' : '🥖'}</span>
+                          <div>
+                            <span className="font-bold text-slate-800 block">{ins.nombre}</span>
+                            <span className="text-[10px] text-slate-400">
+                              Antes: ${ins.precio_compra.toLocaleString('es-AR')} por {ins.cantidad_compra} {ins.unidad_compra}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-2.5 px-3 text-center">
+                        <div className="inline-flex items-center space-x-1">
+                          <input
+                            type="number"
+                            step="any"
+                            min="0.01"
+                            value={d.cantidad_compra}
+                            onChange={(e) => handleDraftChange(ins.id, 'cantidad_compra', e.target.value)}
+                            className="w-20 px-2 py-1.5 text-center font-bold text-slate-800 bg-white border border-slate-200 rounded-xl focus:border-amber-500 outline-none"
+                          />
+                          <span className="text-[11px] font-semibold text-slate-500">{ins.unidad_compra}</span>
+                        </div>
+                      </td>
+
+                      <td className="py-2.5 px-3">
+                        <div className="relative max-w-[150px]">
+                          <span className="absolute left-2.5 top-1.5 text-slate-400 font-bold">$</span>
+                          <input
+                            type="number"
+                            step="any"
+                            min="0"
+                            value={d.precio_compra}
+                            onChange={(e) => handleDraftChange(ins.id, 'precio_compra', e.target.value)}
+                            className={`w-full pl-6 pr-2.5 py-1.5 font-black rounded-xl border outline-none transition-all ${
+                              isChanged
+                                ? 'bg-amber-100/80 border-amber-500 text-amber-950 ring-2 ring-amber-500/20'
+                                : 'bg-white border-slate-200 text-slate-900 focus:border-amber-500'
+                            }`}
+                          />
+                        </div>
+                      </td>
+
+                      <td className="py-2.5 px-3 text-center">
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          max="99"
+                          value={d.merma_porcentaje}
+                          onChange={(e) => handleDraftChange(ins.id, 'merma_porcentaje', e.target.value)}
+                          className="w-16 px-2 py-1.5 text-center font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl focus:border-amber-500 outline-none"
+                        />
+                      </td>
+
+                      <td className="py-2.5 px-4 text-right">
+                        <span className={`font-black text-sm ${isChanged ? 'text-amber-700' : 'text-slate-800'}`}>
+                          ${nuevoCostoBase.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}
+                        </span>
+                        <span className="text-[11px] text-slate-400 ml-1">/ {ins.unidad_base}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

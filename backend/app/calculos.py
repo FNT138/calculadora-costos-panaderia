@@ -70,14 +70,19 @@ def calcular_desglose_receta(receta: Receta, valor_hora: float = 0.0, incluir_ma
     # Costos indirectos (gas, luz, desgaste) aplicados sobre el costo activo
     porc_indirectos = (receta.porcentaje_costos_indirectos or 0.0) / 100.0
     costo_indirectos_unit = (costo_materia_prima_unit + costo_mano_obra_unit) * porc_indirectos
+    costo_indirectos_tanda = (costo_materia_prima_tanda + costo_mano_obra_tanda) * porc_indirectos
 
     costo_total_unit = costo_materia_prima_unit + costo_mano_obra_unit + costo_indirectos_unit
+    costo_total_tanda = costo_materia_prima_tanda + costo_mano_obra_tanda + costo_indirectos_tanda
 
     # Precio sugerido según margen de ganancia configurado en la receta
     margen_pct = (receta.margen_ganancia_sugerido or 50.0) / 100.0
     # Margen sobre costo (Cost-plus): Precio = Costo * (1 + Margen)
     precio_sugerido = costo_total_unit * (1.0 + margen_pct)
     ganancia_sugerida = precio_sugerido - costo_total_unit
+
+    precio_sugerido_tanda = costo_total_tanda * (1.0 + margen_pct)
+    ganancia_sugerida_tanda = precio_sugerido_tanda - costo_total_tanda
 
     margen_sobre_costo = (ganancia_sugerida / costo_total_unit * 100.0) if costo_total_unit > 0 else 0.0
     margen_sobre_precio = (ganancia_sugerida / precio_sugerido * 100.0) if precio_sugerido > 0 else 0.0
@@ -98,6 +103,10 @@ def calcular_desglose_receta(receta: Receta, valor_hora: float = 0.0, incluir_ma
         costo_ingredientes_tanda=round(costo_ingredientes_tanda, 2),
         costo_packaging_tanda=round(costo_packaging_tanda, 2),
         costo_materia_prima_tanda=round(costo_materia_prima_tanda, 2),
+        costo_indirectos_tanda=round(costo_indirectos_tanda, 2),
+        costo_total_tanda=round(costo_total_tanda, 2),
+        precio_sugerido_tanda=round(precio_sugerido_tanda, 2),
+        ganancia_sugerida_tanda=round(ganancia_sugerida_tanda, 2),
         costo_ingredientes_unitario=round(costo_ingredientes_unit, 2),
         costo_packaging_unitario=round(costo_packaging_unit, 2),
         costo_materia_prima_unitario=round(costo_materia_prima_unit, 2),

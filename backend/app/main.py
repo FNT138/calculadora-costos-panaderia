@@ -17,6 +17,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # Inicialización de tablas y restauración de datos
 Base.metadata.create_all(bind=engine)
 try:
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE recetas ADD COLUMN unidad_rendimiento VARCHAR(40) DEFAULT 'unidad'"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+except Exception:
+    pass
+
+try:
     db = SessionLocal()
     # 1. Si GitHub Sync está configurado, restauramos el último respaldo remoto
     if os.getenv("GITHUB_TOKEN") and os.getenv("GITHUB_REPO"):
@@ -30,6 +41,25 @@ try:
             import_dict_to_db(db, backup_data)
             print("Base de datos inicializada desde data/db_backup.json")
     seed_database()
+
+    # Asignar nombres inteligentes de unidad_rendimiento si están en 'unidad' o vacíos
+    from .models import Receta
+    for rec in db.query(Receta).all():
+        if not rec.unidad_rendimiento or rec.unidad_rendimiento == "unidad":
+            nom = (rec.nombre or "").lower()
+            if "alfajor" in nom:
+                rec.unidad_rendimiento = "alfajor"
+            elif "cañoncito" in nom or "canoncito" in nom:
+                rec.unidad_rendimiento = "cañoncito"
+            elif "palmerita" in nom or "bizcochito" in nom:
+                rec.unidad_rendimiento = "paquete 100g"
+            elif "budín" in nom or "budin" in nom:
+                rec.unidad_rendimiento = "budín"
+            elif "brownie" in nom:
+                rec.unidad_rendimiento = "porción"
+            else:
+                rec.unidad_rendimiento = "unidad"
+    db.commit()
     
     # 3. Sincronizar secuencias seriales de PostgreSQL para evitar error de duplicate key
     if db.bind and db.bind.dialect.name == "postgresql":

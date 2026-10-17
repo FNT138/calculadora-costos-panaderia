@@ -13,12 +13,14 @@ def analizar_receta(
     receta_id: int,
     valor_hora: Optional[float] = Query(None, description="Sobrescribir valor hora para la simulación"),
     margen_override: Optional[float] = Query(None, description="Sobrescribir margen % para la simulación"),
+    incluir_mo_stock: bool = Query(True, description="Incluir mano de obra prorrateada desde Stock cuando valor_hora es 0"),
     db: Session = Depends(get_db)
 ):
     receta = (
         db.query(Receta)
         .options(
-            selectinload(Receta.ingredientes).selectinload(RecetaIngrediente.insumo)
+            selectinload(Receta.ingredientes).selectinload(RecetaIngrediente.insumo),
+            selectinload(Receta.producciones),
         )
         .filter(Receta.id == receta_id)
         .first()
@@ -34,6 +36,15 @@ def analizar_receta(
         receta.margen_ganancia_sugerido = margen_override
 
     desglose = calcular_desglose_receta(receta, valor_hora=v_hora, incluir_mano_obra=(v_hora > 0))
+
+    # Si no se forzó un valor_hora manual y el usuario activó incluir_mo_stock,
+    # sumamos la mano de obra prorrateada real desde Stock al costo unitario simulado
+    if incluir_mo_stock and v_hora == 0 and desglose.costo_mano_obra_prorrateada > 0:
+        desglose.costo_mano_obra_unitario = desglose.costo_mano_obra_prorrateada
+        desglose.costo_total_unitario = desglose.costo_total_con_mo_prorrateada
+        desglose.precio_sugerido = desglose.precio_sugerido_con_mo_prorrateada
+        desglose.ganancia_unitaria_sugerida = round(desglose.precio_sugerido - desglose.costo_total_unitario, 2)
+
     curva, precio_optimo = generar_curva_sensibilidad(receta, desglose)
 
     # Restauramos si lo cambiamos temporalmente en memoria

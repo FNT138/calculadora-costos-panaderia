@@ -39,6 +39,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
     categoria: 'Facturas / Masas',
     descripcion: '',
     rendimiento_unidades: 24,
+    unidad_rendimiento: 'unidad',
     tiempo_preparacion_minutos: 60,
     porcentaje_costos_indirectos: 10,
     margen_ganancia_sugerido: 60,
@@ -81,6 +82,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
         categoria: receta.categoria || 'General',
         descripcion: receta.descripcion || '',
         rendimiento_unidades: receta.rendimiento_unidades,
+        unidad_rendimiento: receta.unidad_rendimiento || 'unidad',
         tiempo_preparacion_minutos: receta.tiempo_preparacion_minutos,
         porcentaje_costos_indirectos: receta.porcentaje_costos_indirectos,
         margen_ganancia_sugerido: receta.margen_ganancia_sugerido,
@@ -98,6 +100,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
         categoria: 'Facturas / Masas',
         descripcion: '',
         rendimiento_unidades: 24,
+        unidad_rendimiento: 'unidad',
         tiempo_preparacion_minutos: 60,
         porcentaje_costos_indirectos: 10,
         margen_ganancia_sugerido: 60,
@@ -159,6 +162,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
         categoria: formData.categoria.trim(),
         descripcion: formData.descripcion.trim(),
         rendimiento_unidades: Number(formData.rendimiento_unidades) || 1,
+        unidad_rendimiento: (formData.unidad_rendimiento || 'unidad').trim(),
         tiempo_preparacion_minutos: Number(formData.tiempo_preparacion_minutos) || 0,
         porcentaje_costos_indirectos: Number(formData.porcentaje_costos_indirectos) || 0,
         margen_ganancia_sugerido: Number(formData.margen_ganancia_sugerido) || 0,
@@ -223,18 +227,23 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
     // Indirectos sobre materia prima
     const indPorc = (Number(formData.porcentaje_costos_indirectos) || 0) / 100;
     const indUnit = mpUnit * indPorc;
+    const indTanda = mpTanda * indPorc;
 
     const costoTotalUnit = mpUnit + indUnit;
+    const costoTotalTanda = mpTanda + indTanda;
     const margenPorc = (Number(formData.margen_ganancia_sugerido) || 0) / 100;
     const precioSugerido = costoTotalUnit * (1 + margenPorc);
+    const precioSugeridoTanda = costoTotalTanda * (1 + margenPorc);
 
     return {
-      mpTanda: mpTanda.toFixed(2),
+      mpTanda: mpTanda.toFixed(0),
       mpUnit: mpUnit.toFixed(2),
       moUnit: moUnit.toFixed(2),
       indUnit: indUnit.toFixed(2),
       costoTotalUnit: costoTotalUnit.toFixed(2),
-      precioSugerido: precioSugerido.toFixed(2)
+      costoTotalTanda: costoTotalTanda.toFixed(0),
+      precioSugerido: precioSugerido.toFixed(2),
+      precioSugeridoTanda: precioSugeridoTanda.toFixed(0)
     };
   };
 
@@ -293,6 +302,12 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
           {recetas.map((receta) => {
             const c = receta.costos || {};
             const tienePrecioFijado = receta.precio_venta_fijado && receta.precio_venta_fijado > 0;
+            const unidadLabel = receta.unidad_rendimiento || 'unidad';
+            const rend = receta.rendimiento_unidades || 1;
+            const costoTanda = c.costo_total_tanda ?? ((c.costo_total_unitario || 0) * rend);
+            const precioTanda = c.precio_sugerido_tanda ?? ((c.precio_sugerido || 0) * rend);
+            const gananciaTanda = c.ganancia_sugerida_tanda ?? ((c.ganancia_unitaria_sugerida || 0) * rend);
+
             return (
               <div
                 key={receta.id}
@@ -338,7 +353,9 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                   <div className="grid grid-cols-2 gap-2 mt-4 text-xs bg-slate-50 p-2.5 rounded-2xl text-slate-600">
                     <div>
                       <span className="text-slate-400 block text-[10px]">Rendimiento tanda</span>
-                      <span className="font-bold text-slate-700">{receta.rendimiento_unidades} unidades</span>
+                      <span className="font-bold text-slate-800">
+                        {rend} <span className="text-amber-700 font-semibold">× {unidadLabel}</span>
+                      </span>
                     </div>
                     <div>
                       <span className="text-slate-400 block text-[10px]">Tiempo activo ref.</span>
@@ -349,7 +366,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                   {/* Desglose de costo unitario (Escandallo Puro) */}
                   <div className="mt-4 space-y-1.5 border-t border-slate-100 pt-3 text-xs">
                     <div className="flex justify-between text-slate-500">
-                      <span>Ingredientes (unitario):</span>
+                      <span>Ingredientes (por 1 {unidadLabel}):</span>
                       <span className="font-medium text-slate-700">${c.costo_ingredientes_unitario?.toLocaleString('es-AR')}</span>
                     </div>
                     <div className="flex justify-between text-slate-500">
@@ -373,55 +390,86 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                   </div>
                 </div>
 
-                {/* Pie de tarjeta con costo total y precios sugeridos */}
+                {/* Pie de tarjeta: Doble Vista "Por 1 Unidad" vs "Tanda Completa" */}
                 <div className="mt-4 pt-3 border-t border-slate-100">
-                  <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-xs font-semibold text-slate-600">Costo escandallo puro:</span>
-                    <span className="text-base font-extrabold text-slate-800">
-                      ${c.costo_total_unitario?.toLocaleString('es-AR')}
-                    </span>
-                  </div>
-
-                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 rounded-2xl border border-amber-200/60 mb-3">
-                    <div className="flex justify-between items-center">
+                  <div className="grid grid-cols-2 gap-2.5 mb-3">
+                    {/* Columna 1: Por 1 Unidad */}
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-50/80 p-3 rounded-2xl border border-amber-200/80 flex flex-col justify-between">
                       <div>
-                        <span className="text-[11px] font-bold text-amber-900 block">
-                          Precio sugerido (+{receta.margen_ganancia_sugerido}%):
+                        <span className="text-[10px] uppercase font-black tracking-wider text-amber-800 block truncate">
+                          Por 1 {unidadLabel}
                         </span>
-                        <span className="text-[10px] text-amber-700">
-                          Ganancia: +${c.ganancia_unitaria_sugerida} / u
+                        <div className="mt-1 flex justify-between items-baseline text-[11px] text-slate-600">
+                          <span>Costo:</span>
+                          <span className="font-bold text-slate-800">
+                            ${c.costo_total_unitario?.toLocaleString('es-AR')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-2 pt-1.5 border-t border-amber-200/60">
+                        <span className="text-[10px] font-semibold text-amber-900 block">
+                          Sugerido (+{receta.margen_ganancia_sugerido}%):
+                        </span>
+                        <span className="text-base font-black text-amber-600 block leading-tight">
+                          ${c.precio_sugerido?.toLocaleString('es-AR')}
+                        </span>
+                        <span className="text-[10px] text-emerald-700 font-semibold block mt-0.5">
+                          Ganás +${c.ganancia_unitaria_sugerida?.toLocaleString('es-AR')}
                         </span>
                       </div>
-                      <span className="text-lg font-black text-amber-600">
-                        ${c.precio_sugerido?.toLocaleString('es-AR')}
-                      </span>
                     </div>
 
-                    {tienePrecioFijado && (
-                      <div className="mt-2 pt-2 border-t border-amber-200/50 flex justify-between items-center text-xs">
-                        <span className="text-slate-600">Cobrado actual:</span>
-                        <span className="font-bold text-emerald-700">
-                          ${receta.precio_venta_fijado?.toLocaleString('es-AR')}
-                          <span className="text-[10px] ml-1 font-semibold text-emerald-600">
-                            (+{c.margen_fijado}%)
+                    {/* Columna 2: Tanda Completa */}
+                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-black tracking-wider text-slate-700 block truncate">
+                          Tanda ({rend} u.)
+                        </span>
+                        <div className="mt-1 flex justify-between items-baseline text-[11px] text-slate-600">
+                          <span>Costo tanda:</span>
+                          <span className="font-bold text-slate-800">
+                            ${costoTanda.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                           </span>
+                        </div>
+                      </div>
+                      <div className="mt-2 pt-1.5 border-t border-slate-200">
+                        <span className="text-[10px] font-semibold text-slate-600 block">
+                          Venta toda la tanda:
+                        </span>
+                        <span className="text-base font-black text-slate-800 block leading-tight">
+                          ${precioTanda.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                        </span>
+                        <span className="text-[10px] text-emerald-700 font-semibold block mt-0.5">
+                          Ganás +${gananciaTanda.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                         </span>
                       </div>
-                    )}
+                    </div>
                   </div>
+
+                  {tienePrecioFijado && (
+                    <div className="mb-3 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl flex justify-between items-center text-xs">
+                      <span className="text-emerald-800 font-medium">Precio manual fijado (x1 {unidadLabel}):</span>
+                      <span className="font-bold text-emerald-700">
+                        ${receta.precio_venta_fijado?.toLocaleString('es-AR')}
+                        <span className="text-[10px] ml-1 font-semibold text-emerald-600">
+                          (+{c.margen_fijado}%)
+                        </span>
+                      </span>
+                    </div>
+                  )}
 
                   {/* Botones de acción */}
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handleViewDetail(receta)}
-                      className="flex-1 flex items-center justify-center space-x-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl text-xs font-semibold transition-all"
+                      className="flex-1 flex items-center justify-center space-x-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>Escandallo</span>
                     </button>
                     <button
                       onClick={() => onSelectParaSimulador(receta.id)}
-                      className="flex-1 flex items-center justify-center space-x-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-xl text-xs font-semibold shadow-sm transition-all"
+                      className="flex-1 flex items-center justify-center space-x-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer"
                     >
                       <TrendingUp className="w-3.5 h-3.5" />
                       <span>Simular Precio</span>
@@ -458,7 +506,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                   <input
                     type="text"
                     required
-                    placeholder="Ej: Cañoncitos de Dulce de Leche, Medialunas de manteca..."
+                    placeholder="Ej: Cañoncitos de Dulce de Leche, Alfajores de Maicena..."
                     value={formData.nombre}
                     onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
@@ -478,7 +526,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Rendimiento de la Tanda (unidades)
+                    Rendimiento de la Tanda (cantidad)
                   </label>
                   <input
                     type="number"
@@ -489,6 +537,37 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                     onChange={(e) => setFormData({ ...formData, rendimiento_unidades: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none font-bold text-slate-800"
                   />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    ¿Cómo se llama cada unidad individual que rinde esta tanda?
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      placeholder="Ej: alfajor, cañoncito, paquete 100g, porción, budín..."
+                      value={formData.unidad_rendimiento}
+                      onChange={(e) => setFormData({ ...formData, unidad_rendimiento: e.target.value })}
+                      className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none font-semibold text-amber-900"
+                    />
+                    <div className="flex flex-wrap items-center gap-1">
+                      {['alfajor', 'cañoncito', 'paquete 100g', 'porción', 'budín', 'unidad'].map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, unidad_rendimiento: preset })}
+                          className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer ${
+                            formData.unidad_rendimiento === preset
+                              ? 'bg-amber-600 text-white border-amber-600'
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-amber-50 hover:border-amber-300'
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -536,7 +615,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Precio que cobras hoy ($) <span className="text-[10px] text-slate-400 font-normal">(Opcional)</span>
+                    Precio manual por 1 {formData.unidad_rendimiento || 'unidad'} ($) <span className="text-[10px] text-slate-400 font-normal">(Opcional)</span>
                   </label>
                   <input
                     type="number"
@@ -555,7 +634,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                   <div>
                     <h4 className="text-sm font-bold text-slate-800">Ingredientes y Packaging de la Tanda</h4>
                     <p className="text-[11px] text-slate-400">
-                      Carga las cantidades totales necesarias para producir las {formData.rendimiento_unidades} unidades.
+                      Carga las cantidades totales necesarias para producir los <b>{formData.rendimiento_unidades} × {formData.unidad_rendimiento || 'unidad'}</b>.
                     </p>
                   </div>
                   <button
@@ -631,23 +710,31 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                 )}
               </div>
 
-              {/* Resumen dinámico en vivo (Escandallo Puro) */}
+              {/* Resumen dinámico en vivo (Doble vista: Unidad vs Tanda) */}
               <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200/60 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                 <div>
-                  <span className="text-[10px] text-amber-800 uppercase font-bold block">Materia Prima / u</span>
-                  <span className="text-sm font-extrabold text-amber-900">${preview.mpUnit}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-amber-800 uppercase font-bold block">Indirectos / u</span>
-                  <span className="text-sm font-extrabold text-amber-900">${preview.indUnit}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-amber-800 uppercase font-bold block">Costo Escandallo / u</span>
+                  <span className="text-[10px] text-amber-800 uppercase font-bold block">
+                    Costo x 1 {formData.unidad_rendimiento || 'u'}
+                  </span>
                   <span className="text-base font-black text-slate-900">${preview.costoTotalUnit}</span>
                 </div>
                 <div className="bg-amber-600 text-white rounded-xl p-1.5">
-                  <span className="text-[9px] uppercase font-bold block text-amber-100">Precio Sugerido</span>
+                  <span className="text-[9px] uppercase font-bold block text-amber-100">
+                    Sugerido x 1 {formData.unidad_rendimiento || 'u'}
+                  </span>
                   <span className="text-base font-black">${preview.precioSugerido}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-600 uppercase font-bold block">
+                    Costo Tanda ({formData.rendimiento_unidades} u)
+                  </span>
+                  <span className="text-base font-black text-slate-800">${preview.costoTotalTanda}</span>
+                </div>
+                <div className="bg-slate-800 text-white rounded-xl p-1.5">
+                  <span className="text-[9px] uppercase font-bold block text-slate-300">
+                    Venta Toda la Tanda
+                  </span>
+                  <span className="text-base font-black">${preview.precioSugeridoTanda}</span>
                 </div>
               </div>
 
@@ -675,11 +762,11 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
       {/* Modal Detalle / Escandallo Completo */}
       {isDetailOpen && selectedReceta && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden">
+          <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-100 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-amber-50/50">
               <div>
                 <span className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">
-                  Escandallo Puro Detallado
+                  Escandallo Puro Detallado (Por Unidad vs. Tanda Completa)
                 </span>
                 <h3 className="font-bold text-slate-800 text-base">{selectedReceta.nombre}</h3>
               </div>
@@ -689,14 +776,16 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
             </div>
 
             <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-              <div className="text-xs text-slate-500 flex justify-between bg-slate-50 p-3 rounded-2xl">
-                <span>Rendimiento: <b>{selectedReceta.rendimiento_unidades} unidades</b></span>
+              <div className="text-xs text-slate-600 flex justify-between bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                <span>
+                  Rendimiento: <b>{selectedReceta.rendimiento_unidades} × {selectedReceta.unidad_rendimiento || 'unidad'}</b>
+                </span>
                 <span>Tiempo activo ref.: <b>{selectedReceta.tiempo_preparacion_minutos} min</b></span>
               </div>
 
               <div>
                 <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Lista de Insumos y Packaging
+                  Lista de Insumos y Packaging (para la tanda de {selectedReceta.rendimiento_unidades})
                 </h4>
                 <div className="space-y-1.5">
                   {selectedReceta.ingredientes.map((item) => (
@@ -704,40 +793,63 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                       <div>
                         <span className="font-medium text-slate-800">{item.insumo_nombre}</span>
                         <span className="text-[11px] text-slate-400 ml-2">
-                          ({item.cantidad} {item.unidad_base} x ${item.costo_unitario_insumo})
+                          ({item.cantidad} {item.unidad_base} × ${item.costo_unitario_insumo})
                         </span>
                       </div>
-                      <span className="font-bold text-slate-700">${item.subtotal}</span>
+                      <span className="font-bold text-slate-700">${item.subtotal?.toLocaleString('es-AR')}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Desglose resumido */}
-              <div className="border-t border-slate-100 pt-3 space-y-1.5 text-xs">
-                <div className="flex justify-between text-slate-600">
-                  <span>Costo Materia Prima Tanda:</span>
-                  <span className="font-bold">${selectedReceta.costos?.costo_materia_prima_tanda}</span>
+              {/* Tabla comparativa: Por 1 Unidad vs Por Tanda Completa */}
+              <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs">
+                <div className="grid grid-cols-3 bg-slate-100 font-bold text-slate-700 px-3.5 py-2 border-b border-slate-200">
+                  <span>Concepto</span>
+                  <span className="text-right text-amber-800">
+                    Por 1 {selectedReceta.unidad_rendimiento || 'unidad'}
+                  </span>
+                  <span className="text-right text-slate-800">
+                    Tanda ({selectedReceta.rendimiento_unidades} u.)
+                  </span>
                 </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Materia Prima Unitario:</span>
-                  <span className="font-bold">${selectedReceta.costos?.costo_materia_prima_unitario}</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Gastos Indirectos ({selectedReceta.porcentaje_costos_indirectos}%):</span>
-                  <span className="font-bold">${selectedReceta.costos?.costo_indirectos_unitario}</span>
-                </div>
-                <div className="flex justify-between text-slate-500 text-[11px] italic">
-                  <span>Mano de Obra ({selectedReceta.tiempo_preparacion_minutos} min):</span>
-                  <span className="text-amber-700">Se prorratea en Mano de Obra & Horas</span>
-                </div>
-                <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-100">
-                  <span>Costo Escandallo Unitario:</span>
-                  <span>${selectedReceta.costos?.costo_total_unitario}</span>
-                </div>
-                <div className="flex justify-between text-sm font-black text-amber-600">
-                  <span>Precio Sugerido (+{selectedReceta.margen_ganancia_sugerido}%):</span>
-                  <span>${selectedReceta.costos?.precio_sugerido}</span>
+                <div className="divide-y divide-slate-100 px-3.5 py-1 bg-white">
+                  <div className="grid grid-cols-3 py-2 text-slate-600">
+                    <span>Materia Prima + Pack</span>
+                    <span className="text-right font-semibold">
+                      ${selectedReceta.costos?.costo_materia_prima_unitario?.toLocaleString('es-AR')}
+                    </span>
+                    <span className="text-right font-semibold">
+                      ${selectedReceta.costos?.costo_materia_prima_tanda?.toLocaleString('es-AR')}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 py-2 text-slate-600">
+                    <span>Gas / Luz / Ind. ({selectedReceta.porcentaje_costos_indirectos}%)</span>
+                    <span className="text-right font-semibold">
+                      ${selectedReceta.costos?.costo_indirectos_unitario?.toLocaleString('es-AR')}
+                    </span>
+                    <span className="text-right font-semibold">
+                      ${(selectedReceta.costos?.costo_indirectos_tanda ?? ((selectedReceta.costos?.costo_indirectos_unitario || 0) * selectedReceta.rendimiento_unidades))?.toLocaleString('es-AR')}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 py-2 font-black text-slate-900 bg-slate-50/70 -mx-3.5 px-3.5">
+                    <span>Costo Escandallo Puro</span>
+                    <span className="text-right text-amber-900">
+                      ${selectedReceta.costos?.costo_total_unitario?.toLocaleString('es-AR')}
+                    </span>
+                    <span className="text-right">
+                      ${(selectedReceta.costos?.costo_total_tanda ?? ((selectedReceta.costos?.costo_total_unitario || 0) * selectedReceta.rendimiento_unidades))?.toLocaleString('es-AR')}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 py-2.5 font-black text-amber-600 bg-amber-50/60 -mx-3.5 px-3.5">
+                    <span>Precio Sugerido (+{selectedReceta.margen_ganancia_sugerido}%)</span>
+                    <span className="text-right text-sm">
+                      ${selectedReceta.costos?.precio_sugerido?.toLocaleString('es-AR')}
+                    </span>
+                    <span className="text-right text-sm text-slate-900">
+                      ${(selectedReceta.costos?.precio_sugerido_tanda ?? ((selectedReceta.costos?.precio_sugerido || 0) * selectedReceta.rendimiento_unidades))?.toLocaleString('es-AR')}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -745,7 +857,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
               <button
                 onClick={() => setIsDetailOpen(false)}
-                className="px-4 py-2 text-xs font-semibold bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-100"
+                className="px-4 py-2 text-xs font-semibold bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-100 cursor-pointer"
               >
                 Cerrar
               </button>

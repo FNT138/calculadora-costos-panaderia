@@ -35,7 +35,8 @@ export default function SimuladorView({ recetaIdInicial, onNotify }) {
   const [analisis, setAnalisis] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Controles dinámicos de simulación (Por defecto 0 = Escandallo Puro)
+  // Controles dinámicos de simulación (Por defecto incluye Mano de Obra Prorrateada desde Stock)
+  const [incluirMoStock, setIncluirMoStock] = useState(true);
   const [valorHoraSimulado, setValorHoraSimulado] = useState(0);
   const [margenSimulado, setMargenSimulado] = useState(60);
 
@@ -60,18 +61,17 @@ export default function SimuladorView({ recetaIdInicial, onNotify }) {
   }, []);
 
   // Cargar análisis para la receta seleccionada
-  const cargarAnalisis = async (id, vHora, margen) => {
+  const cargarAnalisis = async (id, vHora, margen, incMoStock) => {
     if (!id) return;
     try {
       setLoading(true);
       const res = await api.getSimulacion(id, {
         valor_hora: vHora,
-        margen_override: margen
+        margen_override: margen,
+        incluir_mo_stock: incMoStock
       });
       setAnalisis(res);
-      if (!precioPrueba) {
-        setPrecioPrueba(res.precio_recomendado);
-      }
+      setPrecioPrueba(res.precio_recomendado);
     } catch (err) {
       onNotify('Error en el simulador: ' + err.message, 'error');
     } finally {
@@ -81,9 +81,9 @@ export default function SimuladorView({ recetaIdInicial, onNotify }) {
 
   useEffect(() => {
     if (selectedRecetaId) {
-      cargarAnalisis(selectedRecetaId, valorHoraSimulado, margenSimulado);
+      cargarAnalisis(selectedRecetaId, valorHoraSimulado, margenSimulado, incluirMoStock);
     }
-  }, [selectedRecetaId, valorHoraSimulado, margenSimulado]);
+  }, [selectedRecetaId, valorHoraSimulado, margenSimulado, incluirMoStock]);
 
   if (recetas.length === 0 && !loading) {
     return (
@@ -94,6 +94,11 @@ export default function SimuladorView({ recetaIdInicial, onNotify }) {
       </div>
     );
   }
+
+  const recetaActual = recetas.find(r => r.id === Number(selectedRecetaId));
+  const unidadLabel = recetaActual?.unidad_rendimiento || 'unidad';
+  const rendTanda = recetaActual?.rendimiento_unidades || 1;
+  const redondearAlMillar = (val) => Math.ceil((Number(val) || 0) / 1000) * 1000;
 
   const d = analisis?.desglose || {};
   const costoTotal = analisis?.costo_total_unitario || 1;
@@ -114,7 +119,7 @@ export default function SimuladorView({ recetaIdInicial, onNotify }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
           <div>
             <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg">
-              Simulador Estratégico
+              Simulador Estratégico Conectado al Stock
             </span>
             <h2 className="text-lg font-black text-slate-800 mt-1">
               Maximización de Precios & Sensibilidad de Ganancia
@@ -134,41 +139,82 @@ export default function SimuladorView({ recetaIdInicial, onNotify }) {
               className="w-full px-3 py-2 text-sm font-bold border border-slate-200 rounded-xl bg-slate-50 text-slate-800 focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none"
             >
               {recetas.map(r => (
-                <option key={r.id} value={r.id}>{r.nombre}</option>
+                <option key={r.id} value={r.id}>
+                  {r.nombre} ({r.rendimiento_unidades} × {r.unidad_rendimiento || 'u'})
+                </option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Sliders para simulación interactiva */}
+        {/* Sliders y Selector de Mano de Obra para simulación interactiva */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-            <div className="flex justify-between items-center mb-1 text-xs">
+          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 space-y-2.5">
+            <div className="flex justify-between items-center text-xs">
               <span className="font-semibold text-slate-700 flex items-center space-x-1">
                 <Clock className="w-3.5 h-3.5 text-amber-600" />
-                <span>Valor hora de trabajo simulado:</span>
+                <span>Modo de Mano de Obra en Simulación:</span>
               </span>
-              <span className="font-bold text-amber-700 text-sm">
-                {valorHoraSimulado === 0 ? 'Escandallo Puro ($0/h)' : `$${valorHoraSimulado.toLocaleString('es-AR')}/h`}
+              <span className="font-bold text-amber-700 text-xs">
+                {valorHoraSimulado > 0
+                  ? `Manual ($${valorHoraSimulado.toLocaleString('es-AR')}/h)`
+                  : incluirMoStock
+                  ? `Stock Real (+$${d.costo_mano_obra_prorrateada || 0}/u)`
+                  : 'Escandallo Puro ($0 MO)'}
               </span>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="50000"
-              step="1000"
-              value={valorHoraSimulado}
-              onChange={(e) => setValorHoraSimulado(Number(e.target.value))}
-              className="w-full accent-amber-600 cursor-pointer"
-            />
-            <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-              <span>$0 (Escandallo Puro)</span>
-              <span>$20.000/h</span>
-              <span>$50.000/h</span>
+
+            {/* Botones rápidos de Modo de Mano de Obra */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setValorHoraSimulado(0);
+                  setIncluirMoStock(true);
+                }}
+                className={`py-1.5 px-2.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+                  valorHoraSimulado === 0 && incluirMoStock
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300'
+                }`}
+              >
+                Con MO de Stock (+${d.costo_mano_obra_prorrateada || 0}/u)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setValorHoraSimulado(0);
+                  setIncluirMoStock(false);
+                }}
+                className={`py-1.5 px-2.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
+                  valorHoraSimulado === 0 && !incluirMoStock
+                    ? 'bg-slate-800 text-white border-slate-800 shadow-2xs'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                Solo Escandallo Puro ($0)
+              </button>
+            </div>
+
+            <div>
+              <input
+                type="range"
+                min="0"
+                max="50000"
+                step="1000"
+                value={valorHoraSimulado}
+                onChange={(e) => setValorHoraSimulado(Number(e.target.value))}
+                className="w-full accent-amber-600 cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] text-slate-400">
+                <span>$0 (Usar botón superior)</span>
+                <span>Simular $/h manual: $25.000/h</span>
+                <span>$50.000/h</span>
+              </div>
             </div>
           </div>
 
-          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 flex flex-col justify-between">
             <div className="flex justify-between items-center mb-1 text-xs">
               <span className="font-semibold text-slate-700 flex items-center space-x-1">
                 <Sliders className="w-3.5 h-3.5 text-amber-600" />
@@ -185,7 +231,7 @@ export default function SimuladorView({ recetaIdInicial, onNotify }) {
               step="5"
               value={margenSimulado}
               onChange={(e) => setMargenSimulado(Number(e.target.value))}
-              className="w-full accent-amber-600 cursor-pointer"
+              className="w-full accent-amber-600 cursor-pointer my-auto"
             />
             <div className="flex justify-between text-[10px] text-slate-400 mt-1">
               <span>10% (Bajo)</span>
@@ -205,10 +251,10 @@ export default function SimuladorView({ recetaIdInicial, onNotify }) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <h3 className="font-bold text-slate-800 text-sm flex items-center space-x-2">
                 <PieChart className="w-4 h-4 text-amber-600" />
-                <span>Estructura de Costos del Producto ({analisis.receta_nombre})</span>
+                <span>Estructura de Costos por 1 {unidadLabel} ({analisis.receta_nombre})</span>
               </h3>
               <div className="text-sm font-semibold text-slate-600">
-                Costo Total Unitario: <span className="text-base font-black text-slate-900">${d.costo_total_unitario}</span>
+                Costo Total por 1 {unidadLabel}: <span className="text-base font-black text-slate-900">${d.costo_total_unitario}</span>
               </div>
             </div>
 
@@ -256,64 +302,96 @@ export default function SimuladorView({ recetaIdInicial, onNotify }) {
             </div>
           </div>
 
-          {/* Hitos Estratégicos de Precios */}
+          {/* Hitos Estratégicos de Precios (Por 1 Unidad + Tanda Redondeada al Millar) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {/* Punto de Equilibrio */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm relative overflow-hidden">
-              <div className="flex items-center space-x-1.5 text-slate-500 text-xs font-bold uppercase mb-1">
-                <ShieldCheck className="w-4 h-4 text-slate-400" />
-                <span>Punto de Equilibrio</span>
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="flex items-center space-x-1.5 text-slate-500 text-xs font-bold uppercase mb-1">
+                  <ShieldCheck className="w-4 h-4 text-slate-400" />
+                  <span>Punto de Equilibrio</span>
+                </div>
+                <div className="text-xl font-black text-slate-700">
+                  ${analisis.precio_minimo_equilibrio?.toLocaleString('es-AR')} <span className="text-xs font-normal text-slate-400">/ {unidadLabel}</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Costo al límite ($0 ganancia extra).
+                </p>
               </div>
-              <div className="text-xl font-black text-slate-700">
-                ${analisis.precio_minimo_equilibrio?.toLocaleString('es-AR')}
+              <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center text-[11px]">
+                <span className="text-slate-500">Tanda ({rendTanda} u) al millar:</span>
+                <span className="font-black text-slate-800">
+                  ${redondearAlMillar((analisis.precio_minimo_equilibrio || 0) * rendTanda).toLocaleString('es-AR')}
+                </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">
-                Costo puro. Vender a este precio da $0 ganancia (para liquidar o costo amigo).
-              </p>
             </div>
 
             {/* Precio Económico */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-              <div className="flex items-center space-x-1.5 text-blue-600 text-xs font-bold uppercase mb-1">
-                <ArrowUpRight className="w-4 h-4" />
-                <span>Económico / Promo</span>
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center space-x-1.5 text-blue-600 text-xs font-bold uppercase mb-1">
+                  <ArrowUpRight className="w-4 h-4" />
+                  <span>Económico / Promo</span>
+                </div>
+                <div className="text-xl font-black text-blue-700">
+                  ${analisis.precio_economico?.toLocaleString('es-AR')} <span className="text-xs font-normal text-blue-400">/ {unidadLabel}</span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  +30% margen. Ideal para promos por cantidad.
+                </p>
               </div>
-              <div className="text-xl font-black text-blue-700">
-                ${analisis.precio_economico?.toLocaleString('es-AR')}
+              <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center text-[11px]">
+                <span className="text-slate-500">Tanda ({rendTanda} u) al millar:</span>
+                <span className="font-black text-blue-800">
+                  ${redondearAlMillar((analisis.precio_economico || 0) * rendTanda).toLocaleString('es-AR')}
+                </span>
               </div>
-              <p className="text-[11px] text-slate-500 mt-1">
-                +30% margen. Ideal para vender docenas completas o promociones masivas.
-              </p>
             </div>
 
             {/* Precio Recomendado Competitivo */}
-            <div className="bg-gradient-to-tr from-amber-500 to-amber-600 rounded-2xl p-4 text-white shadow-md relative">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-200">
-                  Recomendado (+{margenSimulado}%)
+            <div className="bg-gradient-to-tr from-amber-500 to-amber-600 rounded-2xl p-4 text-white shadow-md relative flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-200">
+                    Recomendado (+{margenSimulado}%)
+                  </span>
+                  <Award className="w-4 h-4 text-amber-200" />
+                </div>
+                <div className="text-2xl font-black">
+                  ${analisis.precio_recomendado?.toLocaleString('es-AR')} <span className="text-xs font-normal text-amber-100">/ {unidadLabel}</span>
+                </div>
+                <p className="text-[11px] text-amber-100 mt-1">
+                  Equilibrio óptimo entre rotación y ganancia.
+                </p>
+              </div>
+              <div className="mt-3 pt-2 border-t border-amber-400/50 flex justify-between items-center text-[11px]">
+                <span className="text-amber-100">Tanda ({rendTanda} u) al millar:</span>
+                <span className="font-black text-white bg-amber-900/40 px-2 py-0.5 rounded-lg">
+                  ${redondearAlMillar((analisis.precio_recomendado || 0) * rendTanda).toLocaleString('es-AR')}
                 </span>
-                <Award className="w-4 h-4 text-amber-200" />
               </div>
-              <div className="text-2xl font-black">
-                ${analisis.precio_recomendado?.toLocaleString('es-AR')}
-              </div>
-              <p className="text-[11px] text-amber-100 mt-1">
-                Equilibrio óptimo entre rotación de clientes y ganancia neta por unidad.
-              </p>
             </div>
 
             {/* Precio de Máxima Ganancia */}
-            <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-200 shadow-sm">
-              <div className="flex items-center space-x-1.5 text-emerald-800 text-xs font-bold uppercase mb-1">
-                <Sparkles className="w-4 h-4 text-emerald-600" />
-                <span>Pico de Ganancia</span>
+            <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <div className="flex items-center space-x-1.5 text-emerald-800 text-xs font-bold uppercase mb-1">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  <span>Pico de Ganancia</span>
+                </div>
+                <div className="text-xl font-black text-emerald-700">
+                  ${analisis.precio_optimo_ganancia?.toLocaleString('es-AR')} <span className="text-xs font-normal text-emerald-600">/ {unidadLabel}</span>
+                </div>
+                <p className="text-[11px] text-emerald-800 mt-1">
+                  Maximiza ingreso total según demanda.
+                </p>
               </div>
-              <div className="text-xl font-black text-emerald-700">
-                ${analisis.precio_optimo_ganancia?.toLocaleString('es-AR')}
+              <div className="mt-3 pt-2 border-t border-emerald-200/70 flex justify-between items-center text-[11px]">
+                <span className="text-emerald-800">Tanda ({rendTanda} u) al millar:</span>
+                <span className="font-black text-emerald-900">
+                  ${redondearAlMillar((analisis.precio_optimo_ganancia || 0) * rendTanda).toLocaleString('es-AR')}
+                </span>
               </div>
-              <p className="text-[11px] text-emerald-800 mt-1">
-                Precio que maximiza el ingreso total multiplicando margen x rotación esperada.
-              </p>
             </div>
           </div>
 

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { api } from '../api';
 import ListaPreciosModal from './ListaPreciosModal';
+import PlanificadorPedidoModal from './PlanificadorPedidoModal';
 
 export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
   const [presentaciones, setPresentaciones] = useState([]);
@@ -38,6 +39,7 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
   // Modales
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isListaPreciosOpen, setIsListaPreciosOpen] = useState(false);
+  const [isPlanificadorOpen, setIsPlanificadorOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
   // Formulario de armado de pack / presentación
@@ -370,6 +372,15 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
         </div>
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => setIsPlanificadorOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center space-x-1.5 whitespace-nowrap shrink-0 shadow-sm transition-all cursor-pointer"
+            title="Calcular lista de compras mayorista y ganancias para un pedido o producción"
+          >
+            <PackageCheck className="w-4 h-4 shrink-0" />
+            <span>Planificar Pedido / Compras</span>
+          </button>
+
           <button
             onClick={() => setIsListaPreciosOpen(true)}
             className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs flex items-center space-x-2 whitespace-nowrap shrink-0 shadow-sm transition-all cursor-pointer"
@@ -1086,6 +1097,16 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
         <ListaPreciosModal
           presentaciones={presentaciones}
           onClose={() => setIsListaPreciosOpen(false)}
+        />
+      )}
+
+      {/* Modal de Planificador de Pedido y Lista de Compras (Explosión de Insumos) */}
+      {isPlanificadorOpen && (
+        <PlanificadorPedidoModal
+          presentaciones={presentaciones}
+          recetas={recetas}
+          onClose={() => setIsPlanificadorOpen(false)}
+          onNotify={onNotify}
         />
       )}
 

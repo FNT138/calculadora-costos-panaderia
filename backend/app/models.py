@@ -61,6 +61,7 @@ class Receta(Base):
     categoria = Column(String(50), nullable=True, default="General") # "Facturas", "Panes", "Tartas", etc.
     descripcion = Column(Text, nullable=True)
     rendimiento_unidades = Column(Float, nullable=False, default=1.0) # Unidades que salen por tanda
+    unidad_rendimiento = Column(String(40), nullable=True, default="unidad") # Ej: "unidad", "alfajor", "cañoncito", "paquete 100g", "porción", "budín"
     tiempo_preparacion_minutos = Column(Float, nullable=False, default=60.0) # Minutos estimados por tanda
     porcentaje_costos_indirectos = Column(Float, nullable=False, default=10.0) # Gas, luz, desgaste
     margen_ganancia_sugerido = Column(Float, nullable=False, default=60.0) # % margen sobre costo o precio

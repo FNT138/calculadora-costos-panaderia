@@ -136,6 +136,15 @@ export const api = {
     return handleResponse(res);
   },
 
+  async bulkUpdateInsumos(payload) {
+    const res = await fetch(`${API_BASE}/insumos/bulk-update`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(res);
+  },
+
   async deleteInsumo(id) {
     const res = await fetch(`${API_BASE}/insumos/${id}`, {
       method: 'DELETE',
@@ -266,8 +275,9 @@ export const api = {
   // Simulador de Precios y Maximización
   async getSimulacion(recetaId, params = {}) {
     const query = new URLSearchParams();
-    if (params.valor_hora) query.append('valor_hora', params.valor_hora);
-    if (params.margen_override) query.append('margen_override', params.margen_override);
+    if (params.valor_hora !== undefined && params.valor_hora !== '') query.append('valor_hora', params.valor_hora);
+    if (params.margen_override !== undefined && params.margen_override !== '') query.append('margen_override', params.margen_override);
+    if (params.incluir_mo_stock !== undefined) query.append('incluir_mo_stock', params.incluir_mo_stock);
     const qs = query.toString() ? `?${query.toString()}` : '';
     const res = await fetch(`${API_BASE}/simulador/analisis/${recetaId}${qs}`);
     return handleResponse(res);
