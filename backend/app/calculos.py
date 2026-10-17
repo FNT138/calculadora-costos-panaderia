@@ -12,11 +12,24 @@ def get_config_val(db, clave: str, default: float) -> float:
             return default
     return default
 
+def obtener_mano_obra_prorrateada_receta(receta: Receta) -> float:
+    """
+    Obtiene el costo de mano de obra unitario prorrateado de la última sesión de Stock
+    (Mano de Obra & Horas) en la que se produjo esta receta.
+    """
+    if hasattr(receta, "producciones") and receta.producciones:
+        items_ordenados = sorted(receta.producciones, key=lambda x: x.id or 0, reverse=True)
+        for item in items_ordenados:
+            if item.costo_mano_obra_unitario and item.costo_mano_obra_unitario > 0:
+                return round(float(item.costo_mano_obra_unitario), 2)
+    return 0.0
+
+
 def calcular_desglose_receta(receta: Receta, valor_hora: float = 0.0, incluir_mano_obra: bool = False) -> DesgloseCostos:
     """
     Calcula el desglose de costos de una receta (Modelo A: Escandallo Puro por defecto).
     El tiempo de preparación queda como dato técnico operativo para prorratear en Sesiones de Producción,
-    y no infla el costo unitario del escandallo salvo que se solicite explícitamente en simulación.
+    y además expone la mano de obra prorrateada real desde el Stock para aplicarla en Ventas & Packs.
     """
     costo_ingredientes_tanda = 0.0
     costo_packaging_tanda = 0.0
@@ -69,6 +82,11 @@ def calcular_desglose_receta(receta: Receta, valor_hora: float = 0.0, incluir_ma
     margen_sobre_costo = (ganancia_sugerida / costo_total_unit * 100.0) if costo_total_unit > 0 else 0.0
     margen_sobre_precio = (ganancia_sugerida / precio_sugerido * 100.0) if precio_sugerido > 0 else 0.0
 
+    # Mano de obra prorrateada desde la última sesión de Stock (Opción 1)
+    mo_prorrateada = obtener_mano_obra_prorrateada_receta(receta)
+    costo_total_con_mo = costo_total_unit + mo_prorrateada
+    precio_sug_con_mo = costo_total_con_mo * (1.0 + margen_pct)
+
     # Si hay precio manual fijado
     ganancia_fijada = None
     margen_fijado = None
@@ -86,6 +104,9 @@ def calcular_desglose_receta(receta: Receta, valor_hora: float = 0.0, incluir_ma
         costo_mano_obra_unitario=round(costo_mano_obra_unit, 2),
         costo_indirectos_unitario=round(costo_indirectos_unit, 2),
         costo_total_unitario=round(costo_total_unit, 2),
+        costo_mano_obra_prorrateada=round(mo_prorrateada, 2),
+        costo_total_con_mo_prorrateada=round(costo_total_con_mo, 2),
+        precio_sugerido_con_mo_prorrateada=round(precio_sug_con_mo, 2),
         precio_sugerido=round(precio_sugerido, 2),
         ganancia_unitaria_sugerida=round(ganancia_sugerida, 2),
         margen_sobre_costo=round(margen_sobre_costo, 1),
@@ -167,9 +188,12 @@ def redondear_hacia_arriba(precio: float, multiplo: int = 50) -> float:
 
 def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: float = 20000.0) -> Dict[str, Any]:
     """
-    Calcula el costo total de los productos incluidos, el costo de packaging,
+    Calcula el costo total de los productos incluidos (sumando automáticamente el Escandallo Puro
+    + la Mano de Obra Prorrateada desde la última sesión de Stock), el costo de packaging,
     el precio base sugerido, el precio redondeado hacia arriba y las ganancias netas del pack.
     """
+    costo_puro_productos = 0.0
+    costo_mano_obra_total = 0.0
     costo_productos = 0.0
     precio_productos = 0.0
     items_desglose = []
@@ -179,14 +203,25 @@ def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: 
         if not receta:
             continue
         desglose_rec = calcular_desglose_receta(receta, valor_hora=valor_hora)
-        costo_u = desglose_rec.costo_total_unitario
-        # Precio unitario base de la receta (si tiene fijado, lo toma; si no, el sugerido)
-        precio_u = receta.precio_venta_fijado if (receta.precio_venta_fijado and receta.precio_venta_fijado > 0) else desglose_rec.precio_sugerido
+        costo_puro_u = desglose_rec.costo_total_unitario
+        costo_mo_u = desglose_rec.costo_mano_obra_prorrateada
+        costo_u = desglose_rec.costo_total_con_mo_prorrateada
+
+        # Precio unitario base de la receta (con mano de obra prorrateada del Stock incluida)
+        precio_u = (
+            receta.precio_venta_fijado
+            if (receta.precio_venta_fijado and receta.precio_venta_fijado > 0)
+            else desglose_rec.precio_sugerido_con_mo_prorrateada
+        )
         
         cant = it.cantidad if it.cantidad > 0 else 1.0
+        subtot_puro = round(costo_puro_u * cant, 2)
+        subtot_mo = round(costo_mo_u * cant, 2)
         subtot_costo = round(costo_u * cant, 2)
         subtot_precio = round(precio_u * cant, 2)
 
+        costo_puro_productos += subtot_puro
+        costo_mano_obra_total += subtot_mo
         costo_productos += subtot_costo
         precio_productos += subtot_precio
 
@@ -196,6 +231,9 @@ def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: 
             "receta_nombre": receta.nombre,
             "receta_categoria": receta.categoria,
             "cantidad": cant,
+            "costo_puro_unitario": round(costo_puro_u, 2),
+            "costo_mano_obra_unitario": round(costo_mo_u, 2),
+            "costo_mano_obra_item": subtot_mo,
             "costo_unitario_receta": round(costo_u, 2),
             "costo_total_item": subtot_costo,
             "precio_sugerido_unitario": round(precio_u, 2),
@@ -254,7 +292,7 @@ def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: 
 
     # Margen adicional sobre el pack si está configurado
     margen_extra = (presentacion.margen_adicional or 0.0) / 100.0
-    # Precio base: suma de precios de los productos + packaging con margen
+    # Precio base: suma de precios de los productos (con MO de Stock) + packaging con margen
     precio_base_calculado = round((precio_productos + (costo_packaging_total * 1.5)) * (1.0 + margen_extra), 2)
     if precio_base_calculado <= 0:
         precio_base_calculado = round(costo_total * 1.6, 2)
@@ -279,6 +317,8 @@ def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: 
         "packaging_nombre": packaging_nombre,
         "costo_packaging_unitario": costo_packaging_total,
         "costo_packaging_total": costo_packaging_total,
+        "costo_puro_productos_total": round(costo_puro_productos, 2),
+        "costo_mano_obra_total": round(costo_mano_obra_total, 2),
         "costo_productos_total": round(costo_productos, 2),
         "costo_total_presentacion": costo_total,
         "precio_base_calculado": precio_base_calculado,
@@ -286,6 +326,7 @@ def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: 
         "precio_venta_final": precio_final,
         "precio_venta_miles": precio_venta_miles,
         "ganancia_neta": ganancia_neta,
+        "margen_neto_porcentaje": margen_pct,
         "margen_porcentaje": margen_pct,
         "items": items_desglose,
         "packagings": packagings_desglose

@@ -31,6 +31,9 @@ def format_presentacion_out(p: PresentacionVenta, valor_hora: float) -> Presenta
             receta_nombre=it["receta_nombre"],
             receta_categoria=it.get("receta_categoria"),
             cantidad=it["cantidad"],
+            costo_puro_unitario=it.get("costo_puro_unitario", 0.0),
+            costo_mano_obra_unitario=it.get("costo_mano_obra_unitario", 0.0),
+            costo_mano_obra_item=it.get("costo_mano_obra_item", 0.0),
             costo_unitario_receta=it["costo_unitario_receta"],
             costo_total_item=it["costo_total_item"],
             precio_sugerido_unitario=it["precio_sugerido_unitario"],
@@ -67,6 +70,8 @@ def format_presentacion_out(p: PresentacionVenta, valor_hora: float) -> Presenta
         packaging_nombre=calc["packaging_nombre"],
         costo_packaging_unitario=calc["costo_packaging_unitario"],
         costo_packaging_total=calc["costo_packaging_total"],
+        costo_puro_productos_total=calc.get("costo_puro_productos_total", 0.0),
+        costo_mano_obra_total=calc.get("costo_mano_obra_total", 0.0),
         costo_productos_total=calc["costo_productos_total"],
         costo_total_presentacion=calc["costo_total_presentacion"],
         precio_base_calculado=calc["precio_base_calculado"],
@@ -93,7 +98,7 @@ def listar_presentaciones(
     query = db.query(PresentacionVenta).options(
         selectinload(PresentacionVenta.packaging),
         selectinload(PresentacionVenta.packagings).selectinload(PresentacionVentaPackaging.insumo),
-        selectinload(PresentacionVenta.items).selectinload(PresentacionVentaItem.receta)
+        selectinload(PresentacionVenta.items).selectinload(PresentacionVentaItem.receta).selectinload(Receta.producciones)
     )
 
     if solo_activos:
@@ -113,7 +118,7 @@ def obtener_presentacion(id: int, db: Session = Depends(get_db)):
     p = db.query(PresentacionVenta).options(
         selectinload(PresentacionVenta.packaging),
         selectinload(PresentacionVenta.packagings).selectinload(PresentacionVentaPackaging.insumo),
-        selectinload(PresentacionVenta.items).selectinload(PresentacionVentaItem.receta)
+        selectinload(PresentacionVenta.items).selectinload(PresentacionVentaItem.receta).selectinload(Receta.producciones)
     ).filter(PresentacionVenta.id == id).first()
 
     if not p:

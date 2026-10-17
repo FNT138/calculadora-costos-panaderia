@@ -203,8 +203,10 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
     });
   };
 
-  // Cálculo en vivo del modal
+  // Cálculo en vivo del modal (Opción 1: Incluye Mano de Obra Prorrateada desde Stock)
   const calcularResumenEnVivo = () => {
+    let costoPuroProductos = 0;
+    let costoManoObra = 0;
     let costoProductos = 0;
     let precioBaseProductos = 0;
 
@@ -212,10 +214,17 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
       const rec = recetas.find(r => r.id === Number(it.receta_id));
       if (rec && rec.costos) {
         const cant = Number(it.cantidad) || 0;
-        costoProductos += (rec.costos.costo_total_unitario || 0) * cant;
+        const puroUnit = rec.costos.costo_total_unitario || 0;
+        const moUnit = rec.costos.costo_mano_obra_prorrateada || 0;
+        const totalUnitConMo = rec.costos.costo_total_con_mo_prorrateada || (puroUnit + moUnit);
+
+        costoPuroProductos += puroUnit * cant;
+        costoManoObra += moUnit * cant;
+        costoProductos += totalUnitConMo * cant;
+
         const pUnit = rec.precio_venta_fijado && rec.precio_venta_fijado > 0 
           ? rec.precio_venta_fijado 
-          : (rec.costos.precio_sugerido || 0);
+          : (rec.costos.precio_sugerido_con_mo_prorrateada || rec.costos.precio_sugerido || 0);
         precioBaseProductos += pUnit * cant;
       }
     });
@@ -252,6 +261,8 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
     const margenPct = costoTotal > 0 ? (gananciaNeta / costoTotal) * 100 : 0;
 
     return {
+      costoPuroProductos,
+      costoManoObra,
       costoProductos,
       costoPkg,
       costoTotal,
@@ -547,6 +558,19 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
                       )}
                     </div>
 
+                    {/* Mano de Obra Prorrateada desde Stock */}
+                    {p.costo_mano_obra_total > 0 && (
+                      <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs">
+                        <span className="font-semibold text-amber-800 flex items-center space-x-1.5">
+                          <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-black">MO</span>
+                          <span>Tu Mano de Obra (Stock):</span>
+                        </span>
+                        <span className="font-bold text-amber-800">
+                          +${p.costo_mano_obra_total?.toLocaleString('es-AR')}
+                        </span>
+                      </div>
+                    )}
+
                     {/* Packaging múltiple o singular */}
                     {p.packagings && p.packagings.length > 0 ? (
                       <div className="pt-2 border-t border-slate-200/60 space-y-1.5">
@@ -593,7 +617,7 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
                   {/* Comparativa de Costo vs Precio Base */}
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] text-slate-400 block font-medium">Costo Elaboración</span>
+                      <span className="text-[10px] text-slate-400 block font-medium">Costo Total (c/Tu Sueldo)</span>
                       <span className="font-bold text-slate-700 text-sm">
                         ${p.costo_total_presentacion?.toLocaleString('es-AR')}
                       </span>
@@ -637,7 +661,14 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
                     )}
 
                     <div className="flex items-center justify-between text-xs text-emerald-100 pt-1.5 border-t border-white/20 font-medium">
-                      <span>Ganancia neta: <b>${p.ganancia_neta?.toLocaleString('es-AR')}</b></span>
+                      <div>
+                        <span className="block">Ganancia neta: <b>${p.ganancia_neta?.toLocaleString('es-AR')}</b></span>
+                        {p.costo_mano_obra_total > 0 && (
+                          <span className="text-[10px] text-emerald-200 block">
+                            + Tu sueldo (MO): <b>${p.costo_mano_obra_total?.toLocaleString('es-AR')}</b>
+                          </span>
+                        )}
+                      </div>
                       <span className="bg-emerald-950/30 px-2 py-0.5 rounded-lg font-black text-emerald-200">
                         +{p.margen_porcentaje}%
                       </span>
@@ -875,7 +906,7 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
                 <div className="space-y-2">
                   {formData.items.map((it, idx) => {
                     const rec = recetas.find(r => r.id === Number(it.receta_id));
-                    const costoUnit = rec?.costos?.costo_total_unitario || 0;
+                    const costoUnit = rec?.costos?.costo_total_con_mo_prorrateada || rec?.costos?.costo_total_unitario || 0;
                     const subtotCosto = costoUnit * (Number(it.cantidad) || 0);
 
                     return (
@@ -887,11 +918,15 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
                             onChange={(e) => handleUpdateItemRow(idx, 'receta_id', Number(e.target.value))}
                             className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           >
-                            {recetas.map(r => (
-                              <option key={r.id} value={r.id}>
-                                {r.nombre} (Costo: ${r.costos?.costo_total_unitario?.toLocaleString('es-AR')})
-                              </option>
-                            ))}
+                            {recetas.map(r => {
+                              const cTotal = r.costos?.costo_total_con_mo_prorrateada || r.costos?.costo_total_unitario || 0;
+                              const cMo = r.costos?.costo_mano_obra_prorrateada || 0;
+                              return (
+                                <option key={r.id} value={r.id}>
+                                  {r.nombre} (Costo c/MO: ${cTotal.toLocaleString('es-AR')}{cMo > 0 ? ` · inc. $${cMo.toLocaleString('es-AR')} MO Stock` : ''})
+                                </option>
+                              );
+                            })}
                           </select>
                         </div>
 
@@ -973,27 +1008,27 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
                 <div className="flex items-center justify-between text-xs font-bold text-emerald-900 uppercase tracking-wider">
                   <span className="flex items-center space-x-1.5">
                     <Sparkles className="w-4 h-4 text-emerald-600" />
-                    <span>Cálculo en Vivo de Rentabilidad</span>
+                    <span>Cálculo en Vivo (Inc. Mano de Obra de Stock)</span>
                   </span>
                   <span>Múltiplo: ${formData.redondeo_multiplo}</span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                   <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                    <span className="text-[10px] text-slate-400 block">Costo Productos</span>
-                    <span className="font-bold text-slate-800">${resumenVivo.costoProductos.toLocaleString('es-AR')}</span>
+                    <span className="text-[10px] text-slate-400 block">Costo Puro Prod.</span>
+                    <span className="font-bold text-slate-800">${resumenVivo.costoPuroProductos.toLocaleString('es-AR')}</span>
+                  </div>
+                  <div className="bg-amber-50/90 p-2.5 rounded-xl border border-amber-200">
+                    <span className="text-[10px] text-amber-800 font-semibold block">+ Tu Mano de Obra</span>
+                    <span className="font-bold text-amber-900">+${resumenVivo.costoManoObra.toLocaleString('es-AR')}</span>
                   </div>
                   <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                    <span className="text-[10px] text-slate-400 block">Costo Packaging</span>
+                    <span className="text-[10px] text-slate-400 block">+ Packaging</span>
                     <span className="font-bold text-slate-800">${resumenVivo.costoPkg.toLocaleString('es-AR')}</span>
                   </div>
                   <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
                     <span className="text-[10px] text-slate-400 block">Costo Total Pack</span>
                     <span className="font-bold text-slate-800">${resumenVivo.costoTotal.toLocaleString('es-AR')}</span>
-                  </div>
-                  <div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                    <span className="text-[10px] text-slate-400 block">Precio Base Calculado</span>
-                    <span className="font-bold text-slate-500 line-through">${resumenVivo.precioBase.toLocaleString('es-AR')}</span>
                   </div>
                 </div>
 

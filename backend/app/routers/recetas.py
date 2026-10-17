@@ -54,7 +54,8 @@ def listar_recetas(
 ):
     valor_hora = get_config_val(db, "costo_hora_defecto", 20000.0)
     query = db.query(Receta).options(
-        selectinload(Receta.ingredientes).selectinload(RecetaIngrediente.insumo)
+        selectinload(Receta.ingredientes).selectinload(RecetaIngrediente.insumo),
+        selectinload(Receta.producciones)
     )
     if categoria:
         query = query.filter(Receta.categoria == categoria)
@@ -103,7 +104,8 @@ def obtener_receta(receta_id: int, db: Session = Depends(get_db)):
     receta = (
         db.query(Receta)
         .options(
-            selectinload(Receta.ingredientes).selectinload(RecetaIngrediente.insumo)
+            selectinload(Receta.ingredientes).selectinload(RecetaIngrediente.insumo),
+            selectinload(Receta.producciones)
         )
         .filter(Receta.id == receta_id)
         .first()

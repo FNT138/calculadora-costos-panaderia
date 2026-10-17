@@ -92,6 +92,11 @@ class DesgloseCostos(BaseModel):
     costo_indirectos_unitario: float
     costo_total_unitario: float
 
+    # Mano de obra prorrateada desde la última sesión de Stock (Mano de Obra & Horas)
+    costo_mano_obra_prorrateada: float = 0.0
+    costo_total_con_mo_prorrateada: float = 0.0
+    precio_sugerido_con_mo_prorrateada: float = 0.0
+
     precio_sugerido: float
     ganancia_unitaria_sugerida: float
     margen_sobre_costo: float
@@ -220,6 +225,9 @@ class PresentacionItemOut(BaseModel):
     receta_nombre: str
     receta_categoria: Optional[str] = None
     cantidad: float
+    costo_puro_unitario: float = 0.0
+    costo_mano_obra_unitario: float = 0.0
+    costo_mano_obra_item: float = 0.0
     costo_unitario_receta: float
     costo_total_item: float
     precio_sugerido_unitario: float
@@ -279,6 +287,8 @@ class PresentacionOut(PresentacionBase):
     packaging_nombre: Optional[str] = None
     costo_packaging_unitario: float = 0.0
     costo_packaging_total: float = 0.0
+    costo_puro_productos_total: float = 0.0
+    costo_mano_obra_total: float = 0.0
     costo_productos_total: float = 0.0
     costo_total_presentacion: float = 0.0
     precio_base_calculado: float = 0.0
