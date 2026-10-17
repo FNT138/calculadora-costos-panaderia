@@ -35,8 +35,8 @@ export default function SimuladorView({ recetaIdInicial, onNotify }) {
   const [analisis, setAnalisis] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Controles dinámicos de simulación
-  const [valorHoraSimulado, setValorHoraSimulado] = useState(20000);
+  // Controles dinámicos de simulación (Por defecto 0 = Escandallo Puro)
+  const [valorHoraSimulado, setValorHoraSimulado] = useState(0);
   const [margenSimulado, setMargenSimulado] = useState(60);
 
   // Simulador de volumen personalizado
@@ -149,12 +149,12 @@ export default function SimuladorView({ recetaIdInicial, onNotify }) {
                 <span>Valor hora de trabajo simulado:</span>
               </span>
               <span className="font-bold text-amber-700 text-sm">
-                ${valorHoraSimulado.toLocaleString('es-AR')}/h
+                {valorHoraSimulado === 0 ? 'Escandallo Puro ($0/h)' : `$${valorHoraSimulado.toLocaleString('es-AR')}/h`}
               </span>
             </div>
             <input
               type="range"
-              min="5000"
+              min="0"
               max="50000"
               step="1000"
               value={valorHoraSimulado}
@@ -162,9 +162,9 @@ export default function SimuladorView({ recetaIdInicial, onNotify }) {
               className="w-full accent-amber-600 cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-              <span>$5.000</span>
-              <span>$20.000 (Base)</span>
-              <span>$50.000</span>
+              <span>$0 (Escandallo Puro)</span>
+              <span>$20.000/h</span>
+              <span>$50.000/h</span>
             </div>
           </div>
 

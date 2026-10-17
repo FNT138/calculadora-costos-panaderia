@@ -204,7 +204,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
     setIsDetailOpen(true);
   };
 
-  // Cálculo en vivo de costos para el modal creador
+  // Cálculo en vivo de costos para el modal creador (Modelo A: Escandallo Puro)
   const calcularCostosEnVivo = () => {
     let mpTanda = 0;
     formData.ingredientes.forEach(row => {
@@ -217,16 +217,14 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
     const rendimiento = Number(formData.rendimiento_unidades) > 0 ? Number(formData.rendimiento_unidades) : 1;
     const mpUnit = mpTanda / rendimiento;
 
-    // Mano de obra estimada ($20.000/h base)
-    const horas = (Number(formData.tiempo_preparacion_minutos) || 0) / 60;
-    const moTanda = horas * 20000;
-    const moUnit = moTanda / rendimiento;
+    // Modelo A (Escandallo Puro): el tiempo queda como referencia operativa para Mano de Obra & Horas
+    const moUnit = 0;
 
-    // Indirectos
+    // Indirectos sobre materia prima
     const indPorc = (Number(formData.porcentaje_costos_indirectos) || 0) / 100;
-    const indUnit = (mpUnit + moUnit) * indPorc;
+    const indUnit = mpUnit * indPorc;
 
-    const costoTotalUnit = mpUnit + moUnit + indUnit;
+    const costoTotalUnit = mpUnit + indUnit;
     const margenPorc = (Number(formData.margen_ganancia_sugerido) || 0) / 100;
     const precioSugerido = costoTotalUnit * (1 + margenPorc);
 
@@ -330,28 +328,28 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                       <span className="font-bold text-slate-700">{receta.rendimiento_unidades} unidades</span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block text-[10px]">Tiempo estimado</span>
+                      <span className="text-slate-400 block text-[10px]">Tiempo activo ref.</span>
                       <span className="font-bold text-slate-700">{receta.tiempo_preparacion_minutos} min</span>
                     </div>
                   </div>
 
-                  {/* Desglose de costo unitario */}
+                  {/* Desglose de costo unitario (Escandallo Puro) */}
                   <div className="mt-4 space-y-1.5 border-t border-slate-100 pt-3 text-xs">
                     <div className="flex justify-between text-slate-500">
                       <span>Ingredientes (unitario):</span>
                       <span className="font-medium text-slate-700">${c.costo_ingredientes_unitario}</span>
                     </div>
                     <div className="flex justify-between text-slate-500">
-                      <span>Packaging (unitario):</span>
+                      <span>Packaging en receta:</span>
                       <span className="font-medium text-sky-700">${c.costo_packaging_unitario}</span>
-                    </div>
-                    <div className="flex justify-between text-slate-500">
-                      <span>Mano de obra estimada:</span>
-                      <span className="font-medium text-amber-700">${c.costo_mano_obra_unitario}</span>
                     </div>
                     <div className="flex justify-between text-slate-500">
                       <span>Gas / Luz / Indirectos ({receta.porcentaje_costos_indirectos}%):</span>
                       <span className="font-medium text-slate-700">${c.costo_indirectos_unitario}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400 text-[11px]">
+                      <span>Mano de obra:</span>
+                      <span className="italic text-amber-700/80">Prorrateada en Producción</span>
                     </div>
                   </div>
                 </div>
@@ -359,7 +357,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                 {/* Pie de tarjeta con costo total y precios sugeridos */}
                 <div className="mt-4 pt-3 border-t border-slate-100">
                   <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-xs font-semibold text-slate-600">Costo total unitario:</span>
+                    <span className="text-xs font-semibold text-slate-600">Costo escandallo unitario:</span>
                     <span className="text-base font-extrabold text-slate-800">
                       ${c.costo_total_unitario?.toLocaleString('es-AR')}
                     </span>
@@ -614,18 +612,18 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                 )}
               </div>
 
-              {/* Resumen dinámico en vivo */}
+              {/* Resumen dinámico en vivo (Escandallo Puro) */}
               <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200/60 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                 <div>
                   <span className="text-[10px] text-amber-800 uppercase font-bold block">Materia Prima / u</span>
                   <span className="text-sm font-extrabold text-amber-900">${preview.mpUnit}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-amber-800 uppercase font-bold block">Mano de Obra / u</span>
-                  <span className="text-sm font-extrabold text-amber-900">${preview.moUnit}</span>
+                  <span className="text-[10px] text-amber-800 uppercase font-bold block">Indirectos / u</span>
+                  <span className="text-sm font-extrabold text-amber-900">${preview.indUnit}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-amber-800 uppercase font-bold block">Costo Total / u</span>
+                  <span className="text-[10px] text-amber-800 uppercase font-bold block">Costo Escandallo / u</span>
                   <span className="text-base font-black text-slate-900">${preview.costoTotalUnit}</span>
                 </div>
                 <div className="bg-amber-600 text-white rounded-xl p-1.5">
@@ -662,7 +660,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-amber-50/50">
               <div>
                 <span className="text-[10px] uppercase font-bold text-amber-800 tracking-wider">
-                  Escandallo Detallado
+                  Escandallo Puro Detallado
                 </span>
                 <h3 className="font-bold text-slate-800 text-base">{selectedReceta.nombre}</h3>
               </div>
@@ -674,7 +672,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
             <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               <div className="text-xs text-slate-500 flex justify-between bg-slate-50 p-3 rounded-2xl">
                 <span>Rendimiento: <b>{selectedReceta.rendimiento_unidades} unidades</b></span>
-                <span>Tiempo: <b>{selectedReceta.tiempo_preparacion_minutos} min</b></span>
+                <span>Tiempo activo ref.: <b>{selectedReceta.tiempo_preparacion_minutos} min</b></span>
               </div>
 
               <div>
@@ -707,15 +705,15 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                   <span className="font-bold">${selectedReceta.costos?.costo_materia_prima_unitario}</span>
                 </div>
                 <div className="flex justify-between text-slate-600">
-                  <span>Mano de Obra Unitaria:</span>
-                  <span className="font-bold text-amber-700">${selectedReceta.costos?.costo_mano_obra_unitario}</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
                   <span>Gastos Indirectos ({selectedReceta.porcentaje_costos_indirectos}%):</span>
                   <span className="font-bold">${selectedReceta.costos?.costo_indirectos_unitario}</span>
                 </div>
+                <div className="flex justify-between text-slate-500 text-[11px] italic">
+                  <span>Mano de Obra ({selectedReceta.tiempo_preparacion_minutos} min):</span>
+                  <span className="text-amber-700">Se prorratea en Mano de Obra & Horas</span>
+                </div>
                 <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-100">
-                  <span>Costo Total Unitario:</span>
+                  <span>Costo Escandallo Unitario:</span>
                   <span>${selectedReceta.costos?.costo_total_unitario}</span>
                 </div>
                 <div className="flex justify-between text-sm font-black text-amber-600">

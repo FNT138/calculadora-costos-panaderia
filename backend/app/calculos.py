@@ -12,8 +12,12 @@ def get_config_val(db, clave: str, default: float) -> float:
             return default
     return default
 
-def calcular_desglose_receta(receta: Receta, valor_hora: float = 20000.0) -> DesgloseCostos:
-    """Calcula el desglose completo de costos de una receta por tanda y por unidad."""
+def calcular_desglose_receta(receta: Receta, valor_hora: float = 0.0, incluir_mano_obra: bool = False) -> DesgloseCostos:
+    """
+    Calcula el desglose de costos de una receta (Modelo A: Escandallo Puro por defecto).
+    El tiempo de preparación queda como dato técnico operativo para prorratear en Sesiones de Producción,
+    y no infla el costo unitario del escandallo salvo que se solicite explícitamente en simulación.
+    """
     costo_ingredientes_tanda = 0.0
     costo_packaging_tanda = 0.0
 
@@ -40,12 +44,17 @@ def calcular_desglose_receta(receta: Receta, valor_hora: float = 20000.0) -> Des
     costo_packaging_unit = costo_packaging_tanda / rendimiento
     costo_materia_prima_unit = costo_materia_prima_tanda / rendimiento
 
-    # Mano de obra estándar estimada por tanda
-    horas_tanda = (receta.tiempo_preparacion_minutos or 0.0) / 60.0
-    costo_mano_obra_tanda = horas_tanda * valor_hora
-    costo_mano_obra_unit = costo_mano_obra_tanda / rendimiento
+    # Modelo A (Escandallo Puro): La mano de obra no se suma al costo unitario de la receta,
+    # salvo cuando se simula explícitamente con incluir_mano_obra=True
+    if incluir_mano_obra and valor_hora > 0:
+        horas_tanda = (receta.tiempo_preparacion_minutos or 0.0) / 60.0
+        costo_mano_obra_tanda = horas_tanda * valor_hora
+        costo_mano_obra_unit = costo_mano_obra_tanda / rendimiento
+    else:
+        costo_mano_obra_tanda = 0.0
+        costo_mano_obra_unit = 0.0
 
-    # Costos indirectos (gas, luz, desgaste) aplicados sobre materia prima + mano de obra
+    # Costos indirectos (gas, luz, desgaste) aplicados sobre el costo activo
     porc_indirectos = (receta.porcentaje_costos_indirectos or 0.0) / 100.0
     costo_indirectos_unit = (costo_materia_prima_unit + costo_mano_obra_unit) * porc_indirectos
 

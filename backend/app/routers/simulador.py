@@ -26,14 +26,14 @@ def analizar_receta(
     if not receta:
         raise HTTPException(status_code=404, detail="Receta no encontrada")
 
-    v_hora = valor_hora if (valor_hora is not None and valor_hora > 0) else get_config_val(db, "costo_hora_defecto", 20000.0)
+    v_hora = valor_hora if (valor_hora is not None and valor_hora >= 0) else 0.0
     
     # Si hay margen override temporal para simulación
     margen_original = receta.margen_ganancia_sugerido
     if margen_override is not None and margen_override >= 0:
         receta.margen_ganancia_sugerido = margen_override
 
-    desglose = calcular_desglose_receta(receta, valor_hora=v_hora)
+    desglose = calcular_desglose_receta(receta, valor_hora=v_hora, incluir_mano_obra=(v_hora > 0))
     curva, precio_optimo = generar_curva_sensibilidad(receta, desglose)
 
     # Restauramos si lo cambiamos temporalmente en memoria
