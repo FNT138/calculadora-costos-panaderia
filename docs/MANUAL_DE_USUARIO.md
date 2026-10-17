@@ -1,265 +1,174 @@
 # 📘 Manual de Usuario Integral: Calculadora de Costos & Maximización de Precios
 
 > **Panadería y Pastelería Artesanal**  
-> *Versión 2.0 — Guía Oficial de Uso, Costeo, Estrategia de Precios y Seguridad*
+> *Versión 3.1 — Guía Oficial de Uso, Escandallo Puro (Modelo A), Mano de Obra Prorrateada desde Stock (Opción 1), Ventas & Packs Multi-Packaging y Redondeo al Millar*
 
 ---
 
 ## 📑 Tabla de Contenidos
-1. [Introducción & Filosofía del Sistema](#1-introducción--filosofía-del-sistema)
-2. [Estructura de la Interfaz & Navegación](#2-estructura-de-la-interfaz--navegación)
-3. [Seguridad & PIN Maestro (Modo Lectura vs Admin)](#3-seguridad--pin-maestro-modo-lectura-vs-admin)
-4. [Módulo 1: Insumos & Packaging (Materia Prima)](#4-módulo-1-insumos--packaging-materia-prima)
-5. [Módulo 2: Recetas & Costeo de Escandallo](#5-módulo-2-recetas--costeo-de-escandallo)
-6. [Glosario de Costos y Precios: ¿Qué significa cada valor?](#6-glosario-de-costos-y-precios-qué-significa-cada-valor)
-7. [Módulo 3: Mano de Obra & Ventanas Temporales de Horneado](#7-módulo-3-mano-de-obra--ventanas-temporales-de-horneado)
-8. [Módulo 4: Simulador de Ganancia & Curvas de Sensibilidad](#8-módulo-4-simulador-de-ganancia--curvas-de-sensibilidad)
-9. [Módulo 5: Ajustes del Taller & Copias de Seguridad](#9-módulo-5-ajustes-del-taller--copias-de-seguridad)
-10. [Flujos de Trabajo Prácticos del Día a Día](#10-flujos-de-trabajo-prácticos-del-día-a-día)
+1. [Introducción & Filosofía del Sistema (Modelo A + Opción 1)](#1-introducción--filosofía-del-sistema-modelo-a--opción-1)
+2. [Estructura de la Interfaz & Barra de Navegación](#2-estructura-de-la-interfaz--barra-de-navegación)
+3. [Seguridad & PIN Maestro (Modo Lectura vs. Admin Activo)](#3-seguridad--pin-maestro-modo-lectura-vs-admin-activo)
+4. [Módulo 1: Recetas & Costos (Escandallo Puro)](#4-módulo-1-recetas--costos-escandallo-puro)
+5. [Módulo 2: Ventas & Packs (Multi-Packaging, Mano de Obra de Stock y Redondeo al Millar)](#5-módulo-2-ventas--packs-multi-packaging-mano-de-obra-de-stock-y-redondeo-al-millar)
+6. [Carta Oficial de Precios e Impresión A4](#6-carta-oficial-de-precios-e-impresión-a4)
+7. [Módulo 3: Insumos & Packaging (Materia Prima y Mermas)](#7-módulo-3-insumos--packaging-materia-prima-y-mermas)
+8. [Módulo 4: Mano de Obra & Horas (Carga de Stock y Prorrateo Real)](#8-módulo-4-mano-de-obra--horas-carga-de-stock-y-prorrateo-real)
+9. [Módulo 5: Simulador de Ganancia & Curva de Sensibilidad](#9-módulo-5-simulador-de-ganancia--curva-de-sensibilidad)
+10. [Módulo 6: Ajustes del Taller & Copias de Seguridad](#10-módulo-6-ajustes-del-taller--copias-de-seguridad)
+11. [Flujos de Trabajo Prácticos del Día a Día](#11-flujos-de-trabajo-prácticos-del-día-a-día)
 
 ---
 
-## 1. Introducción & Filosofía del Sistema
+## 1. Introducción & Filosofía del Sistema (Modelo A + Opción 1)
 
-La mayoría de los pasteleros y panaderos caseros calculan sus precios multiplicando el costo de la harina y los huevos "por dos" o "por tres". Este método empírico suele llevar a **pérdidas invisibles** porque ignora tres factores cruciales:
-1. **Tu tiempo real de trabajo:** Amasar, rellenar, vigilar el horno y limpiar son horas de tu vida que deben tener un salario digno garantizado.
-2. **El packaging y embalaje:** Cajas, blondas, bolsas de polipropileno cristal y etiquetas con logo pueden representar hasta el 25% del costo del producto terminado.
-3. **Los gastos invisibles del taller (Costos Indirectos):** Gas de horno, electricidad de batidoras y heladeras, agua, detergente y desgaste de latas/moldes.
+En la panadería y pastelería artesanal, cargar el valor de una hora completa de trabajo directamente dentro de una receta individual distorsiona los costos cuando el rendimiento de la receta base es pequeño (por ejemplo, *100g de Palmeritas* o *100g de Bizcochitos*), ya que en la cocina real nunca se prende el horno para hacer un solo paquete, sino que se hornea un **stock completo de varios productos en simultáneo**.
 
-Este sistema implementa un **costeo profesional de escandallo artesanal**, vinculando compras reales, rendimiento de tandas, valor hora prorrateado y curvas matemáticas de elasticidad para encontrar el **precio óptimo de venta**.
+Para que tus precios sean competitivos pero **siempre cobres el 100% de tus horas de trabajo**, el sistema funciona en un circuito de 3 pasos (**Modelo A + Opción 1**):
 
----
-
-## 2. Estructura de la Interfaz & Navegación
-
-La aplicación está diseñada bajo el estándar **Mobile-First**, garantizando una experiencia idéntica y fluida tanto en computadoras de escritorio como en la pantalla de cualquier teléfono celular o tablet.
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ 🔥 Panadería Costos | [Recetas] [Insumos] [Mano de Obra] [Simulador]  [🔒 PIN] [⚙️] │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Barra de Navegación Superior
-* **Logo & Nombre:** Al tocar el logo o título regresas a la pantalla principal de Recetas.
-* **Pestañas de Navegación:**
-  1. **Recetas & Costos:** Catálogo de productos, tarjetas de escandallo y constructor de recetas.
-  2. **Insumos & Packaging:** Lista de ingredientes, compras por bulto, mermas y precios unitarios.
-  3. **Mano de Obra & Horas:** Historial de jornadas de horneado y prorrateo entre múltiples productos.
-  4. **Simulador de Ganancia:** Curva de sensibilidad, puntos de equilibrio y proyector mensual.
-* **Botón de Seguridad / PIN:** Indicador de estado (**🔒 Solo Lectura** / **🔓 Admin Activo**).
-* **Botón de Ajustes (Engranaje ⚙️):** Configuración de valor hora, márgenes por defecto y respaldos.
+1. **Paso 1 — Recetas & Costos (Escandallo Puro):** Cada receta calcula el costo puro de sus **Ingredientes + Packaging de Receta + Costos Indirectos (Gas, Luz, Horno)**. El tiempo de preparación en minutos queda registrado como ficha técnica.
+2. **Paso 2 — Mano de Obra & Horas (Cuando cocinas tu Stock):** Al terminar tu jornada de producción (ej. *4,5 horas de trabajo*), cargas todo el stock que salió del horno. El sistema reparte tu sueldo por hora entre todas las unidades producidas y obtiene la **Mano de Obra Prorrateada por Unidad** (ej. `+$722,22` por alfajorcito, `+$3.249,99` por paquete de palmeritas).
+3. **Paso 3 — Ventas & Packs (Donde armas la presentación y cobras todo):** Cuando armas una bandeja, caja o pack para vender, el sistema suma automáticamente:
+   $$\text{Costo Puro de Receta} + \text{Tu Mano de Obra Prorrateada (Stock)} + \text{Todos los Packagings del Pack}$$
+   Sobre ese costo real completo aplica tu margen de ganancia y **redondea el precio final hacia arriba al múltiplo de \$1.000 más cercano** (por ejemplo, \$29.654,30 pasa a **\$30.000 / \$30 mil**) para que no tengas que lidiar con cambio chico.
 
 ---
 
-## 3. Seguridad & PIN Maestro (Modo Lectura vs Admin)
+## 2. Estructura de la Interfaz & Barra de Navegación
 
-El sistema cuenta con un control de acceso para proteger tus recetas e información comercial si compartes el enlace con clientes o empleados.
+La aplicación cuenta con un encabezado superior unificado con navegación por píldoras y diseño adaptable a escritorio, tablet y celular:
 
-```
-                    ┌─────────────────────────┐
-                    │    Enlace Público Web    │
-                    └────────────┬────────────┘
-                                 │
-                   ┌─────────────┴─────────────┐
-                   ▼                           ▼
-        [ Visitante / Cliente ]        [ Pastelero / Dueño ]
-                   │                           │
-          Modo Solo Lectura               Ingresa PIN Maestro
-                   │                           │
-       • Ver catálogo y precios       • Crear / Editar recetas
-       • Consultar ingredientes       • Modificar precios de compra
-       • Explorar simulador           • Registrar jornadas reales
-       ✖ Edición bloqueada            • Cambiar ajustes del taller
-```
+![Catálogo Principal de Recetas y Barra de Navegación](./screenshots/01_recetas_catalogo.png)
 
-### Estados del Candado:
-* **🔒 Solo Lectura:** El usuario puede inspeccionar toda la información, pero si hace clic en *"Nueva Receta"*, *"Nuevo Insumo"*, *"Editar"* o *"Eliminar"*, se despliega el teclado numérico solicitando el PIN maestro.
-* **🔓 Admin Activo:** Al ingresar el PIN (**`1234`** de fábrica), la sesión se guarda en el navegador de tu dispositivo durante 30 días. Todos los botones de edición se activan. Al hacer clic sobre este botón verde, la sesión se bloquea al instante.
-
-### ¿Cómo cambiar el PIN Maestro?
-1. Abre el modal de PIN tocando el candado o ve a **Ajustes (⚙️)** $\rightarrow$ *"Seguridad & Acceso"*.
-2. Toca **"Cambiar PIN Maestro"**.
-3. Ingresa tu PIN actual, tu nuevo PIN (mínimo 4 caracteres o dígitos) y confírmalo.
-4. El cambio se graba de forma permanente en la nube.
+### Secciones Principales de la Barra Superior
+* **Recetas & Costos:** Recetario maestro con cálculo de escandallo puro e indicador de mano de obra prorrateada en stock.
+* **Ventas & Packs:** Constructor de bandejas, cajas y combos con soporte de múltiples packagings, inclusión automática de tu sueldo por hora desde el stock y Carta Oficial de Precios.
+* **Insumos & Packaging:** Catálogo de materias primas y descartables con conversión automática (`kg` a `g`, `litro` a `ml`, `pack` a `unidad`) y porcentaje de merma.
+* **Mano de Obra:** Registro de jornadas de horneado para prorratear tus horas reales de trabajo entre el stock producido e imprimir informes financieros A4.
+* **Simulador:** Curva interactiva de elasticidad precio-demanda y análisis de sensibilidad.
+* **Estado de Seguridad (`Admin Activo` / `Solo Lectura`) y Ajustes (`⚙️`):** Control de bloqueo por PIN Maestro y parámetros globales del taller.
 
 ---
 
-## 4. Módulo 1: Insumos & Packaging (Materia Prima)
+## 3. Seguridad & PIN Maestro (Modo Lectura vs. Admin Activo)
 
-Aquí se gestiona tu inventario de compras. Es el cimiento de todos los cálculos: cuando cambias el precio de un insumo aquí, **todas las recetas que lo utilicen actualizan su costo al instante**.
+Para proteger tus fórmulas y precios cuando muestras la pantalla o compartes el enlace web, el sistema cuenta con bloqueo por **PIN Maestro**:
 
-### Campos de un Insumo:
-1. **Nombre del Insumo:** Nombre descriptivo (ej. *Harina 0000 Chacabuco*, *Dulce de Leche Vacalin*, *Bolsita Cristal 15x25*).
-2. **Categoría:**
-   * **Ingrediente:** Materias primas comestibles que van a la masa, relleno o decoración.
-   * **Packaging:** Descartables, cajas, moldes de papel, bolsas, blondas, bandejas y stickers.
-3. **Unidad de Compra & Conversión Automática:**
-   * **Kilo (kg):** Se convierte automáticamente a **Gramos (g)** dividiendo por 1.000.
-   * **Gramo (g):** Unidad base para pesajes de precisión.
-   * **Litro (l):** Se convierte automáticamente a **Mililitros (ml)** dividiendo por 1.000.
-   * **Mililitro (ml):** Unidad base líquida.
-   * **Pack / Paquete:** Cantidad de unidades sueltas que vienen dentro del paquete (ej. paquete de 100 bolsitas, caja de 50 moldes).
-   * **Docena:** Multiplica automáticamente por 12 unidades.
-   * **Unidad:** Para insumos que se compran sueltos (ej. 1 manzana, 1 caja individual).
-4. **Precio Total de Compra ($):** Lo que pagaste en el ticket del supermercado o distribuidora.
-5. **Merma o Desperdicio (%):** Porcentaje que se pierde en el proceso y no llega al producto final (ej. 2% de dulce de leche que se pega a la manga; 5% de cáscara o merma de limón; evaporación de líquidos).
+![Modal de Seguridad con Teclado Numérico para PIN Maestro](./screenshots/09_seguridad_pin_modal.png)
 
-$$\text{Costo Base por Unidad} = \frac{\text{Precio Total de Compra}}{\text{Cantidad Base}} \times \frac{1}{1 - \frac{\text{Merma \%}}{100}}$$
+* **🔒 Modo Solo Lectura:** Permite consultar recetas, ver la Carta de Precios y usar el Simulador, pero bloquea cualquier creación, edición o eliminación.
+* **🔓 Modo Admin Activo:** Al ingresar tu PIN Maestro (`1234` por defecto), se habilitan todos los botones de edición durante 30 días en tu navegador. Haciendo clic sobre el botón verde **Admin Activo** puedes bloquear la sesión al instante.
 
 ---
 
-## 5. Módulo 2: Recetas & Costeo de Escandallo
+## 4. Módulo 1: Recetas & Costos (Escandallo Puro)
 
-Es el recetario central de tu negocio. Cada tarjeta muestra el costo unitario de elaboración y el precio de venta sugerido.
+En **Recetas & Costos** administras la fórmula técnica de cada producto. Al hacer clic en el botón **Escandallo** de cualquier tarjeta, accedes al desglose gramo por gramo de la tanda y de cada unidad:
 
-### Campos de una Receta:
-* **Nombre de la Receta:** Ej. *Brownie Clásico*, *Lemon Pie*, *Pastafrola*.
-* **Categoría:** Ej. *Pastelería*, *Tartas Dulces*, *Facturas*, *Panadería*.
-* **Rendimiento de la Tanda (Unidades):** ¿Cuántas porciones o unidades terminadas rinde la preparación completa? (ej. 1 budín, 6 porciones de brownie, 20 alfajorcitos).
-* **Tiempo de Preparación (Minutos):** Tiempo estimado total dedicado a elaborar esta tanda (pesado, batido, armado, horneado y decoración).
-* **Porcentaje de Costos Indirectos (%):** Desgaste de equipos, gas y luz asignados a la tanda (estándar: **10%**).
-* **Margen de Ganancia Sugerido (%):** Porcentaje de beneficio esperado sobre el costo total (estándar artesanal: **60%**).
-* **Precio de Venta Fijado ($):** *(Opcional)* Si ya decidiste un precio al público en tu pizarra (ej. $3.800), lo ingresas aquí para comparar tu ganancia real contra la sugerida.
-* **Lista de Ingredientes y Packaging:**
-  * Selector del insumo cargado previamente.
-  * Cantidad exacta requerida para **toda la tanda** (en gramos, ml o unidades).
-  * Notas individuales (ej. *"Para el glasé superior"*, *"Masa hojaldrada"*).
+![Modal de Escandallo Puro Detallado de una Receta](./screenshots/01b_modal_escandallo_receta.png)
 
----
+### ¿Qué muestra cada tarjeta de Receta?
 
-## 6. Glosario de Costos y Precios: ¿Qué significa cada valor?
-
-Para tomar decisiones comerciales correctas, debes entender qué representa cada cifra en la tarjeta de la receta:
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        COMPOSICIÓN DEL COSTO                           │
-├───────────────────────────────┬────────────────────────────┬───────────┤
-│    Materia Prima (MP)         │    Mano de Obra (MO)       │  CIF (10%)│
-│  Ingredientes + Packaging     │  (Tiempo / 60) * ValorHora │ Gas + Luz │
-└───────────────────────────────┴────────────────────────────┴───────────┘
-                                       │
-                                       ▼
-                       ┌───────────────────────────────┐
-                       │   COSTO TOTAL UNITARIO (CU)   │
-                       └───────────────┬───────────────┘
-                                       │
-                      + Margen de Ganancia (ej. +60%)
-                                       │
-                                       ▼
-                       ┌───────────────────────────────┐
-                       │   PRECIO SUGERIDO DE VENTA    │
-                       └───────────────────────────────┘
-```
-
-### 1. Costo de Materia Prima (MP)
-Es la suma de todos los gramos de harina, azúcar, manteca, chocolate, más el packaging individual (bolsa, caja, base dorada) utilizados en una unidad.
-
-### 2. Costo de Mano de Obra (MO)
-Representa tu sueldo por elaborar el producto:
-
-$$\text{MO Unitaria} = \frac{\left(\frac{\text{Tiempo en Minutos}}{60}\right) \times \text{Valor Hora}}{\text{Rendimiento de Unidades}}$$
-
-*Ejemplo:* Si hacer 4 tartitas de Lemon Pie te lleva 45 minutos y tu valor hora es $20.000:
-$$\text{MO Tanda} = \frac{45}{60} \times \$20.000 = \$15.000 \implies \text{MO por Tartita} = \frac{\$15.000}{4} = \$3.750$$
-
-### 3. Costos Indirectos de Fabricación (CIF)
-El 10% aplicado sobre la suma de Materia Prima + Mano de Obra para pagar el gas del horno, la boleta de luz, el agua y reponer moldes o batidores desgastados.
-
-### 4. Costo Total Unitario (Costo de Elaboración)
-$$\text{Costo Total} = \text{Materia Prima} + \text{Mano de Obra} + \text{Costos Indirectos}$$
-> [!IMPORTANT]
-> **Línea Roja:** Este es tu **Punto de Equilibrio**. Si vendes por debajo de este valor, estás pagando para trabajar.
-
-### 5. Precio Sugerido de Venta
-Calculado bajo la fórmula de **Margen sobre Costo (Cost-Plus Pricing)**:
-$$\text{Precio Sugerido} = \text{Costo Total} \times \left(1 + \frac{\text{Margen \%}}{100}\right)$$
-
-### 6. Margen sobre Costo vs. Margen sobre Precio
-* **Margen sobre Costo (Markup):** Cuánto le agregas a lo que te costó. Si algo cuesta $1.000 y le agregas 60%, lo vendes a $1.600.
-* **Margen sobre Precio (Gross Margin):** De cada $100 que te paga el cliente en mano, cuánto queda limpio en tu bolsillo. Si cobraste $1.600 y te costó $1.000, ganaste $600 $\rightarrow$ tu margen sobre precio es:
-$$\frac{\$600}{\$1.600} \times 100 = 37,5\%$$
+| Indicador | Qué calcula | Ejemplo (*Alfajorcitos de Maicena*) |
+| :--- | :--- | :--- |
+| **Ingredientes (unitario)** | Suma exacta de materias primas dividida por el rendimiento de la tanda. | **\$598,58 / u.** |
+| **Gas / Luz / Indirectos** | Porcentaje (ej. `10%`) sobre la materia prima para cubrir horno y electricidad. | **\$59,86 / u.** |
+| **Mano de Obra (Stock)** | Muestra cuánto de tu sueldo por hora absorbe cada unidad según tu última sesión de producción, valor que se suma automáticamente en **Ventas & Packs**. | **+\$722,22 / u.** *(aplicada en Ventas)* |
+| **Costo Escandallo Puro** | Suma de Ingredientes + Packaging en receta + Gas/Luz. | **\$658,44 / u.** |
+| **Precio Sugerido Base** | Precio orientativo sobre el escandallo puro según el margen configurado (`+60%`). | **\$1.053,51 / u.** |
 
 ---
 
-## 7. Módulo 3: Mano de Obra & Ventanas Temporales de Horneado
+## 5. Módulo 2: Ventas & Packs (Multi-Packaging, Mano de Obra de Stock y Redondeo al Millar)
 
-En la pastelería real casi nunca se hornea una sola receta a la vez. Prendes el horno una mañana de sábado y en una **ventana de 3 horas** sacas al mismo tiempo varias cosas.
+En **Ventas & Packs** defines las presentaciones reales que entregas a tus clientes (bandejas, cajas por media docena o docena, bolsitas por peso o combos degustación).
 
-### El Concepto de Prorrateo Ponderado
-Si trabajas **3 horas** a un valor de **$20.000/h**, el costo laboral total de esa jornada es **$60.000**.  
-El sistema no divide tontamente esos $60.000 en partes iguales si hiciste productos con distinta dificultad. Permite aplicar un **Factor de Dificultad**:
-* **Factor 1.0 (Normal):** Productos estándar (alfajores, bizcochitos).
-* **Factor 1.5 (Complejo):** Hojaldrados, masas laminadas que requieren muchas vueltas y reposos.
-* **Factor 2.0 (Alta Dificultad):** Tartas decoradas, merengues italianos flambeados o armado de pisos.
+![Catálogo de Ventas & Packs con Mano de Obra de Stock y Precios Redondeados](./screenshots/02_ventas_packs_catalogo.png)
 
-### ¿Cómo registrar o corregir una sesión?
-1. Toca **"Registrar Sesión de Trabajo"** (o toca el **lápiz ✏️** en una sesión anterior para editarla si te equivocaste).
-2. Ingresa el título (ej. *"Hornada del Sábado"*), las horas reales trabajadas y el valor hora.
-3. Agrega cada producto que horneaste con su cantidad y factor de dificultad.
-4. El sistema calcula en vivo la mano de obra asignada a cada producto y guarda un **histórico inmutable** de esa jornada.
+### Constructor de Presentaciones con Múltiples Packagings
 
----
+Al crear o editar una presentación comercial se abre el modal de armado completo:
 
-## 8. Módulo 4: Simulador de Ganancia & Curvas de Sensibilidad
+![Modal de Armado de Pack con Múltiples Filas de Packaging y Cálculo en Vivo](./screenshots/03_modal_armado_pack_multipackaging.png)
 
-El simulador te permite responder la pregunta: *"¿Qué precio debería poner para ganar la mayor cantidad de dinero a fin de mes sin asustar a los clientes?"*
-
-```
-              Curva de Sensibilidad (Ganancia Total vs Precio)
-  Ganancia ($)
-       ▲                     [Pico Óptimo]
-       │                          ★
-       │                     /          \
-       │         [Promo]    /            \    [Premium]
-       │            •      /              \      •
-       │           /      /                \    /
-       │ [Costo]  /      /                  \  /
-       │    •    /      /                    \/
-       └────┴───┴──────┴──────────────────────┴───────► Precio ($)
-```
-
-### Los 5 Hitos Estratégicos de Precio:
-1. **Punto de Equilibrio ($CU):** Venta a costo estricto. Ganancia = $0. Solo se usa para donaciones o descartes.
-2. **Precio Económico / Promoción ($CU + 30%):** Ideal para ventas al por mayor, revendedores, combos de feria o eventos familiares de gran volumen.
-3. **Precio Competitivo Recomendado ($CU + 60%):** El precio justo y sostenible para venta directa al público en mostrador.
-4. **Precio Premium / Alta Gama ($CU + 120%):** Para clientes corporativos, empaques para regalo, materias primas importadas o temporadas festivas (Navidad, Pascua).
-5. **Precio Óptimo de Ganancia:** La cima matemática de la parábola calculada por el simulador. Considera que si subes el precio ganas más por unidad, pero vendes menos cantidad. En este punto la **Ganancia Total Neta (Margen $\times$ Volumen Estimado)** alcanza su valor máximo.
+1. **Packaging & Presentación (`+ Agregar Packaging`):**
+   * Puedes sumar **todos los insumos de empaque** que lleva esa presentación: por ejemplo, `1x Caja o Bandeja de Cartón` + `1x Papel Manteca Separador` + `1x Bolsita Polipropileno` + `1x Sticker con Logo`.
+2. **Productos incluidos en la presentación (`+ Agregar Producto`):**
+   * Seleccionas qué recetas y cuántas unidades integran el pack.
+   * Cada producto incorpora automáticamente su **Costo Puro + su Mano de Obra Prorrateada desde tu Stock**.
+3. **Cálculo en Vivo y Redondeo Comercial al Millar (`$1.000`):**
+   * El panel inferior muestra por separado:
+     * **Costo Puro Prod.** (ingredientes y horno)
+     * **+ Tu Mano de Obra** (tu sueldo por hora prorrateado desde Stock)
+     * **+ Packaging** (suma de cajas, bolsas, papel y stickers)
+     * **Costo Total Pack** (la suma de los tres anteriores)
+   * Sobre ese total se calcula el precio con ganancia y se **redondea hacia arriba al próximo múltiplo de \$1.000** (ej. \$29.654,30 $\rightarrow$ **\$30.000 / 30 mil**; \$23.654,30 $\rightarrow$ **\$24.000 / 24 mil**).
+   * En la tarjeta verde final ves exactamente cuánto dinero queda como **Ganancia Neta del negocio** y cuánto dinero corresponde a **Tu Sueldo (MO)**.
 
 ---
 
-## 9. Módulo 5: Ajustes del Taller & Copias de Seguridad
+## 6. Carta Oficial de Precios e Impresión A4
 
-Al tocar el icono de engranaje (**⚙️ Ajustes**) puedes configurar los parámetros globales del taller:
-1. **Valor Hora de Mano de Obra ($):** Tu salario por hora deseado (ej. $20.000/h).
-2. **Margen por Defecto (%):** Porcentaje sugerido para nuevas recetas (ej. 60%).
-3. **Porcentaje de Servicios (%):** Gas, luz y amortización (ej. 10%).
-4. **Copias de Seguridad (Backups JSON):**
-   * **Descargar Copia:** Guarda en tu computadora o teléfono un archivo `panaderia_backup.json` con todos tus insumos, recetas y sesiones.
-   * **Restaurar Copia:** Te permite subir un archivo previo para recuperar tu base de datos si alguna vez cambias de servidor.
-   * **Sincronización Permanente:** Conectado a la nube mediante PostgreSQL en Neon.tech, lo que garantiza que nunca se pierdan tus datos ante reinicios o apagados del servidor.
+Al pulsar el botón **"Carta de Precios (PDF)"** en la esquina superior derecha de **Ventas & Packs**, se genera el documento comercial listo para imprimir en una hoja A4 o exportar a PDF:
+
+![Carta Oficial de Precios Lista para Imprimir en A4 o Guardar como PDF](./screenshots/04_carta_precios_impresion.png)
+
+* **Conmutador de Moneda (`$30.000` vs. `$30 mil`):** Puedes alternar en un clic entre mostrar los precios completos en pesos o abreviados en miles.
+* **Impresión A4 Limpia:** Configurada para salir en una única página prolija, ocultando barras y botones del sistema.
 
 ---
 
-## 10. Flujos de Trabajo Prácticos del Día a Día
+## 7. Módulo 3: Insumos & Packaging (Materia Prima y Mermas)
 
-### 🛒 Caso A: Fuiste al supermercado y compraste insumos nuevos
-1. Entra a **Insumos & Packaging**.
-2. Si es un producto nuevo, toca **"+ Nuevo Insumo"**, coloca cuánto pagaste y cuántos kilos/litros/unidades contiene el paquete.
-3. Si es un producto que ya tenías y aumentó (ej. la manteca pasó de $4.500 a $7.000):
-   * Toca el lápiz **✏️ Editar** sobre la manteca.
-   * Cambia el precio a `$7.000`.
-   * Toca **Guardar**. ¡Listo! Todas las recetas que lleven manteca se actualizaron solas.
+En **Insumos & Packaging** cargas las compras de supermercado, distribuidora o papelera. Cualquier cambio de precio aquí actualiza automáticamente todas las recetas y todas las presentaciones de venta.
 
-### 🎂 Caso B: Quieres cotizar un producto nuevo (ej. Tarta de Manzana)
-1. Entra a **Recetas & Costos** $\rightarrow$ **"+ Nueva Receta"**.
-2. Escribe el rendimiento (ej. 1 tarta grande) y cuántos minutos te lleva elaborarla (ej. 40 minutos).
-3. Agrega los ingredientes: 300g harina, 150g manteca, 3 manzanas, 100g azúcar, 1 base dorada y 1 caja.
-4. Mira el pie de página: el sistema te dirá el costo exacto y el precio sugerido de venta.
+![Catálogo de Insumos y Packaging con Conversión Automática y Mermas](./screenshots/05_insumos_materias_primas.png)
 
-### 👩‍🍳 Caso C: Terminaste una jornada de horneado y quieres registrarla
-1. Entra a **Mano de Obra & Horas** $\rightarrow$ **"Registrar Sesión de Trabajo"**.
-2. Pon cuántas horas trabajaste en total (ej. 2.5 hs).
-3. Selecciona qué productos salieron del horno y cuántas unidades obtuviste.
-4. Toca **Guardar**. Verás exactamente cuánto te costó cada unidad producida en esa hornada específica.
+* **Filtros Rápidos:** Alterna entre **Todos**, **Ingredientes** y **Packaging & Cajas**.
+* **Conversión Automática:** Si compras por **Kilo (`kg`)** o **Litro (`l`)**, el sistema divide por `1.000` para obtener el costo exacto por gramo (`g`) o mililitro (`ml`). Si compras por **Pack** o **Docena**, calcula el costo por unidad individual.
+* **Merma / Desperdicio (`%`):** Ajusta el costo real contemplando la pérdida inevitable en cocción, pelado o restos en utensilios.
+
+---
+
+## 8. Módulo 4: Mano de Obra & Horas (Carga de Stock y Prorrateo Real)
+
+En **Mano de Obra** registras tus jornadas reales de cocina cuando produces stock:
+
+![Módulo de Mano de Obra y Sesiones de Producción de Stock](./screenshots/06_mano_obra_sesiones.png)
+
+### ¿Por qué es fundamental este módulo?
+1. Cuando horneas varios lotes en una misma mañana o tarde, ingresas las **Horas Trabajadas** y tu **Valor Hora** (ej. `$20.000/h`).
+2. Cargas las unidades totales producidas de cada receta en esa sesión.
+3. El sistema calcula la **Mano de Obra Unitaria Real** de cada producto según el volumen producido y la dificultad, y **alimenta automáticamente a Ventas & Packs** para que tus precios de venta cubran siempre tu salario por hora.
+4. Además, haciendo clic en **"Ver Informe"**, obtienes un reporte financiero A4 imprimible con la **Inversión en Insumos**, **Tu Sueldo de Elaboración** y la **Ganancia Neta de la Jornada**.
+
+---
+
+## 9. Módulo 5: Simulador de Ganancia & Curva de Sensibilidad
+
+El **Simulador** te permite analizar matemáticamente cómo responde la demanda y tu ganancia total ante distintos niveles de precio:
+
+![Simulador Estratégico con Curva de Maximización de Beneficios](./screenshots/07_simulador_curva_ganancia.png)
+
+* **Deslizador de Valor Hora Simulado:** Inicia en **`Escandallo Puro ($0/h)`** y te permite deslizar hasta `$50.000/h` para simular distintos escenarios de costo laboral.
+* **Deslizador de Margen Objetivo:** Ajusta el porcentaje de ganancia entre `10%` y `150%` viendo en vivo el impacto sobre los 4 hitos de precio (**Punto de Equilibrio**, **Económico/Promo**, **Recomendado** y **Pico de Ganancia**).
+
+---
+
+## 10. Módulo 6: Ajustes del Taller & Copias de Seguridad
+
+Desde el botón **Ajustes (`⚙️`)** del encabezado superior configuras los valores por defecto del taller y gestionas tus respaldos:
+
+![Modal de Ajustes del Taller y Copias de Seguridad JSON](./screenshots/08_ajustes_taller_config.png)
+
+* **Parámetros Base:** Valor hora por defecto (`$20.000`), margen de ganancia sugerido (`60%`) y porcentaje de costos indirectos (`10%`).
+* **Respaldo y Restauración (`JSON`):** Descarga una copia completa de tu base de datos en cualquier momento o restaura un archivo previo con un clic.
+
+---
+
+## 11. Flujos de Trabajo Prácticos del Día a Día
+
+### 🥖 Flujo Completo: Cocinaste el sábado y vas a publicar tu lista de precios
+1. **Registra tu jornada de Stock:** Entra a **Mano de Obra**, toca **"Registrar Sesión de Trabajo"**, pon las horas totales que trabajaste y anota cuántas unidades sacaste de cada producto (ej. *30 alfajorcitos, 24 cañoncitos, 4 paquetes de 100g de palmeritas*).
+2. **Revisa tus bandejas en Ventas & Packs:** Entra a **Ventas & Packs**. Verás que cada pack ya sumó automáticamente el costo puro de los ingredientes + **tu mano de obra prorrateada de esa sesión** + todos los packagings (caja, bolsa, papel manteca, sticker), redondeando el precio final hacia arriba al múltiplo de **\$1.000**.
+3. **Imprime o comparte tu Carta de Precios:** Haz clic en **"Carta de Precios (PDF)"**, elige si prefieres ver los valores como `$15.000` o `$15 mil`, e imprime o guarda el PDF para enviarlo por WhatsApp.
