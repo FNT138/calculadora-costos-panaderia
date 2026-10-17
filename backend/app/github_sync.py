@@ -12,7 +12,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime
 from sqlalchemy.orm import Session
-from .models import Insumo, Receta, RecetaIngrediente, SesionProduccion, SesionProduccionItem, Configuracion, PresentacionVenta, PresentacionVentaItem
+from .models import Insumo, Receta, RecetaIngrediente, SesionProduccion, SesionProduccionItem, Configuracion, PresentacionVenta, PresentacionVentaItem, PresentacionVentaPackaging
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPO = os.getenv("GITHUB_REPO") # Ej: "FNT138/calculadora-costos-panaderia"
@@ -110,6 +110,14 @@ def export_db_to_dict(db: Session) -> dict:
                         "notas": pi.notas
                     }
                     for pi in p.items
+                ],
+                "packagings": [
+                    {
+                        "insumo_id": pki.insumo_id,
+                        "cantidad": pki.cantidad,
+                        "notas": pki.notas
+                    }
+                    for pki in (p.packagings if hasattr(p, "packagings") and p.packagings else [])
                 ]
             }
             for p in presentaciones
@@ -276,12 +284,21 @@ def import_dict_to_db(db: Session, data: dict):
                         notas=pi.get("notas")
                     ))
 
+                db.query(PresentacionVentaPackaging).filter(PresentacionVentaPackaging.presentacion_id == pres.id).delete()
+                for pki in p_data.get("packagings", []):
+                    db.add(PresentacionVentaPackaging(
+                        presentacion_id=pres.id,
+                        insumo_id=pki["insumo_id"],
+                        cantidad=pki.get("cantidad", 1.0),
+                        notas=pki.get("notas")
+                    ))
+
         db.commit()
         
         # Sincronizar secuencias seriales en PostgreSQL
         if db.bind and db.bind.dialect.name == "postgresql":
             from sqlalchemy import text
-            for tbl in ["insumos", "recetas", "receta_ingredientes", "sesiones_produccion", "sesion_produccion_items", "presentaciones_venta", "presentacion_venta_items"]:
+            for tbl in ["insumos", "recetas", "receta_ingredientes", "sesiones_produccion", "sesion_produccion_items", "presentaciones_venta", "presentacion_venta_items", "presentacion_venta_packagings"]:
                 try:
                     db.execute(text(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), coalesce(max(id), 0) + 1, false) FROM {tbl};"))
                     db.commit()

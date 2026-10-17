@@ -6,12 +6,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, selectinload
 from ..database import get_db
-from ..models import PresentacionVenta, PresentacionVentaItem, Receta, Insumo
+from ..models import PresentacionVenta, PresentacionVentaItem, PresentacionVentaPackaging, Receta, Insumo
 from ..schemas import (
     PresentacionCreate,
     PresentacionUpdate,
     PresentacionOut,
-    PresentacionItemOut
+    PresentacionItemOut,
+    PresentacionPackagingOut
 )
 from ..calculos import calcular_desglose_presentacion, get_config_val
 from ..github_sync import trigger_auto_sync
@@ -39,6 +40,19 @@ def format_presentacion_out(p: PresentacionVenta, valor_hora: float) -> Presenta
         for it in calc["items"]
     ]
 
+    packagings_out = [
+        PresentacionPackagingOut(
+            id=pkg["id"],
+            insumo_id=pkg["insumo_id"],
+            insumo_nombre=pkg["insumo_nombre"],
+            cantidad=pkg["cantidad"],
+            costo_unitario=pkg["costo_unitario"],
+            costo_total_item=pkg["costo_total_item"],
+            notas=pkg.get("notas")
+        )
+        for pkg in calc.get("packagings", [])
+    ]
+
     return PresentacionOut(
         id=p.id,
         nombre=p.nombre,
@@ -62,6 +76,7 @@ def format_presentacion_out(p: PresentacionVenta, valor_hora: float) -> Presenta
         ganancia_neta=calc["ganancia_neta"],
         margen_porcentaje=calc["margen_porcentaje"],
         items=items_out,
+        packagings=packagings_out,
         fecha_creacion=p.fecha_creacion,
         fecha_actualizacion=p.fecha_actualizacion
     )
@@ -77,6 +92,7 @@ def listar_presentaciones(
     valor_hora = get_config_val(db, "costo_hora_defecto", 20000.0)
     query = db.query(PresentacionVenta).options(
         selectinload(PresentacionVenta.packaging),
+        selectinload(PresentacionVenta.packagings).selectinload(PresentacionVentaPackaging.insumo),
         selectinload(PresentacionVenta.items).selectinload(PresentacionVentaItem.receta)
     )
 
@@ -96,6 +112,7 @@ def obtener_presentacion(id: int, db: Session = Depends(get_db)):
     valor_hora = get_config_val(db, "costo_hora_defecto", 20000.0)
     p = db.query(PresentacionVenta).options(
         selectinload(PresentacionVenta.packaging),
+        selectinload(PresentacionVenta.packagings).selectinload(PresentacionVentaPackaging.insumo),
         selectinload(PresentacionVenta.items).selectinload(PresentacionVentaItem.receta)
     ).filter(PresentacionVenta.id == id).first()
 
@@ -109,7 +126,7 @@ def crear_presentacion(data: PresentacionCreate, db: Session = Depends(get_db)):
     if not data.items:
         raise HTTPException(status_code=400, detail="Debe incluir al menos un producto o receta en la presentación")
 
-    # Validar packaging si se seleccionó
+    # Validar packaging legacy si se seleccionó
     if data.packaging_id:
         pkg = db.query(Insumo).filter(Insumo.id == data.packaging_id).first()
         if not pkg:
@@ -141,6 +158,20 @@ def crear_presentacion(data: PresentacionCreate, db: Session = Depends(get_db)):
             cantidad=it.cantidad,
             notas=it.notas
         ))
+
+    # Guardar múltiples packagings si fueron proporcionados
+    if data.packagings:
+        for it_pkg in data.packagings:
+            ins = db.query(Insumo).filter(Insumo.id == it_pkg.insumo_id).first()
+            if not ins:
+                db.rollback()
+                raise HTTPException(status_code=400, detail=f"Packaging ID {it_pkg.insumo_id} no existe")
+            db.add(PresentacionVentaPackaging(
+                presentacion_id=nueva.id,
+                insumo_id=it_pkg.insumo_id,
+                cantidad=it_pkg.cantidad if it_pkg.cantidad > 0 else 1.0,
+                notas=it_pkg.notas
+            ))
 
     db.commit()
     db.refresh(nueva)
@@ -202,6 +233,21 @@ def actualizar_presentacion(id: int, data: PresentacionUpdate, db: Session = Dep
                 notas=it.notas
             ))
 
+    # Actualizar packagings si fueron enviados
+    if data.packagings is not None:
+        db.query(PresentacionVentaPackaging).filter(PresentacionVentaPackaging.presentacion_id == p.id).delete()
+        for it_pkg in data.packagings:
+            ins = db.query(Insumo).filter(Insumo.id == it_pkg.insumo_id).first()
+            if not ins:
+                db.rollback()
+                raise HTTPException(status_code=400, detail=f"Packaging ID {it_pkg.insumo_id} no existe")
+            db.add(PresentacionVentaPackaging(
+                presentacion_id=p.id,
+                insumo_id=it_pkg.insumo_id,
+                cantidad=it_pkg.cantidad if it_pkg.cantidad > 0 else 1.0,
+                notas=it_pkg.notas
+            ))
+
     db.commit()
     db.refresh(p)
     trigger_auto_sync(db)
@@ -231,6 +277,7 @@ def exportar_lista_precios_csv(db: Session = Depends(get_db)):
     valor_hora = get_config_val(db, "costo_hora_defecto", 20000.0)
     presentaciones = db.query(PresentacionVenta).options(
         selectinload(PresentacionVenta.packaging),
+        selectinload(PresentacionVenta.packagings).selectinload(PresentacionVentaPackaging.insumo),
         selectinload(PresentacionVenta.items).selectinload(PresentacionVentaItem.receta)
     ).filter(PresentacionVenta.activo == 1).order_by(
         PresentacionVenta.categoria.asc(), 
@@ -258,7 +305,7 @@ def exportar_lista_precios_csv(db: Session = Depends(get_db)):
     for p in presentaciones:
         calc = calcular_desglose_presentacion(p, valor_hora=valor_hora)
         contenido_str = ", ".join([f"{it['cantidad']}x {it['receta_nombre']}" for it in calc["items"]])
-        pkg_str = f"{p.cantidad_packaging}x {calc['packaging_nombre']}" if calc['packaging_nombre'] else "Sin packaging adicional"
+        pkg_str = calc['packaging_nombre'] if calc['packaging_nombre'] else "Sin packaging adicional"
         miles_val = int(calc['precio_venta_miles']) if calc['precio_venta_miles'].is_integer() else calc['precio_venta_miles']
 
         writer.writerow([

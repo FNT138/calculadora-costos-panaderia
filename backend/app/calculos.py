@@ -194,19 +194,52 @@ def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: 
             "notas": it.notas
         })
 
-    # Packaging
-    costo_packaging_unit = 0.0
-    packaging_nombre = None
-    if presentacion.packaging:
+    # Packaging múltiple (Bandejas, Cajas, Bolsitas, Stickers, etc.)
+    costo_packaging_total = 0.0
+    packagings_desglose = []
+
+    if hasattr(presentacion, 'packagings') and presentacion.packagings:
+        for pkg_item in presentacion.packagings:
+            ins = pkg_item.insumo
+            if not ins:
+                continue
+            costo_base_pkg = ins.costo_por_unidad_base
+            if costo_base_pkg <= 0:
+                costo_base_pkg = ins.calcular_costo_base()
+            cant_pkg = pkg_item.cantidad if pkg_item.cantidad > 0 else 1.0
+            subtot_pkg = round(costo_base_pkg * cant_pkg, 2)
+            costo_packaging_total += subtot_pkg
+
+            packagings_desglose.append({
+                "id": pkg_item.id,
+                "insumo_id": pkg_item.insumo_id,
+                "insumo_nombre": ins.nombre,
+                "cantidad": cant_pkg,
+                "costo_unitario": round(costo_base_pkg, 2),
+                "costo_total_item": subtot_pkg,
+                "notas": pkg_item.notas
+            })
+    elif presentacion.packaging:
         pkg = presentacion.packaging
-        packaging_nombre = pkg.nombre
         costo_base_pkg = pkg.costo_por_unidad_base
         if costo_base_pkg <= 0:
             costo_base_pkg = pkg.calcular_costo_base()
-        costo_packaging_unit = costo_base_pkg
+        cant_pkg = presentacion.cantidad_packaging if presentacion.cantidad_packaging is not None else 1.0
+        subtot_pkg = round(costo_base_pkg * cant_pkg, 2)
+        costo_packaging_total = subtot_pkg
 
-    cant_pkg = presentacion.cantidad_packaging if presentacion.cantidad_packaging is not None else 1.0
-    costo_packaging_total = round(costo_packaging_unit * cant_pkg, 2)
+        packagings_desglose.append({
+            "id": 0,
+            "insumo_id": pkg.id,
+            "insumo_nombre": pkg.nombre,
+            "cantidad": cant_pkg,
+            "costo_unitario": round(costo_base_pkg, 2),
+            "costo_total_item": subtot_pkg,
+            "notas": None
+        })
+
+    costo_packaging_total = round(costo_packaging_total, 2)
+    packaging_nombre = " + ".join([f"{p['cantidad']}x {p['insumo_nombre']}" for p in packagings_desglose]) if packagings_desglose else None
 
     costo_total = round(costo_productos + costo_packaging_total, 2)
 
@@ -235,7 +268,7 @@ def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: 
 
     return {
         "packaging_nombre": packaging_nombre,
-        "costo_packaging_unitario": round(costo_packaging_unit, 2),
+        "costo_packaging_unitario": costo_packaging_total,
         "costo_packaging_total": costo_packaging_total,
         "costo_productos_total": round(costo_productos, 2),
         "costo_total_presentacion": costo_total,
@@ -245,5 +278,6 @@ def calcular_desglose_presentacion(presentacion: PresentacionVenta, valor_hora: 
         "precio_venta_miles": precio_venta_miles,
         "ganancia_neta": ganancia_neta,
         "margen_porcentaje": margen_pct,
-        "items": items_desglose
+        "items": items_desglose,
+        "packagings": packagings_desglose
     }

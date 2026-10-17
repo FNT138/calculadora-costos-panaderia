@@ -215,8 +215,8 @@ export default function ListaPreciosModal({ presentaciones, onClose }) {
                             </div>
                             {p.packaging_nombre && (
                               <div className="text-[11px] font-normal text-slate-500 mt-0.5 flex items-center space-x-1">
-                                <PackageCheck className="w-3 h-3 text-emerald-600" />
-                                <span>{p.cantidad_packaging > 1 ? `${p.cantidad_packaging}x ` : ''}{p.packaging_nombre}</span>
+                                <PackageCheck className="w-3 h-3 text-emerald-600 shrink-0" />
+                                <span>{p.packaging_nombre}</span>
                               </div>
                             )}
                           </td>

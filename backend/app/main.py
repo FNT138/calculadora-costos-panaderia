@@ -34,7 +34,7 @@ try:
     # 3. Sincronizar secuencias seriales de PostgreSQL para evitar error de duplicate key
     if db.bind and db.bind.dialect.name == "postgresql":
         from sqlalchemy import text
-        for tbl in ["insumos", "recetas", "receta_ingredientes", "sesiones_produccion", "sesion_produccion_items", "presentaciones_venta", "presentacion_venta_items"]:
+        for tbl in ["insumos", "recetas", "receta_ingredientes", "sesiones_produccion", "sesion_produccion_items", "presentaciones_venta", "presentacion_venta_items", "presentacion_venta_packagings"]:
             try:
                 db.execute(text(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), coalesce(max(id), 0) + 1, false) FROM {tbl};"))
                 db.commit()

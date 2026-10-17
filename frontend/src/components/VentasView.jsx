@@ -50,7 +50,8 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
     margen_adicional: 0,
     precio_venta_fijado: '',
     redondeo_multiplo: 1000, // Por defecto al millar ($1.000: ej. $23.654 -> $24.000 / 24 mil)
-    items: []
+    items: [],
+    packagings: []
   });
 
   const cargarDatos = async () => {
@@ -91,6 +92,23 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
 
     if (pres) {
       setEditingId(pres.id);
+      
+      // Armamos la lista de packagings (soporta tanto múltiples packagings como el legacy singular)
+      let initialPackagings = [];
+      if (pres.packagings && pres.packagings.length > 0) {
+        initialPackagings = pres.packagings.map(pkg => ({
+          insumo_id: pkg.insumo_id,
+          cantidad: pkg.cantidad,
+          notas: pkg.notas || ''
+        }));
+      } else if (pres.packaging_id) {
+        initialPackagings = [{
+          insumo_id: pres.packaging_id,
+          cantidad: pres.cantidad_packaging || 1,
+          notas: ''
+        }];
+      }
+
       setFormData({
         nombre: pres.nombre,
         descripcion: pres.descripcion || '',
@@ -106,7 +124,8 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
               cantidad: it.cantidad,
               notas: it.notas || ''
             }))
-          : []
+          : [],
+        packagings: initialPackagings
       });
     } else {
       setEditingId(null);
@@ -114,12 +133,13 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
         nombre: '',
         descripcion: '',
         categoria: 'Packs & Bandejas',
-        packaging_id: packagingInsumos.length > 0 ? String(packagingInsumos[0].id) : '',
+        packaging_id: '',
         cantidad_packaging: 1,
         margen_adicional: 0,
         precio_venta_fijado: '',
         redondeo_multiplo: 1000,
-        items: recetas.length > 0 ? [{ receta_id: recetas[0].id, cantidad: 1, notas: '' }] : []
+        items: recetas.length > 0 ? [{ receta_id: recetas[0].id, cantidad: 1, notas: '' }] : [],
+        packagings: packagingInsumos.length > 0 ? [{ insumo_id: packagingInsumos[0].id, cantidad: 1, notas: '' }] : []
       });
     }
     setIsModalOpen(true);
@@ -154,6 +174,35 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
     });
   };
 
+  const handleAddPackagingRow = () => {
+    if (packagingInsumos.length === 0) {
+      onNotify('No hay insumos creados con la categoría "packaging". Creá uno en Insumos.', 'warning');
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      packagings: [
+        ...(prev.packagings || []),
+        { insumo_id: packagingInsumos[0].id, cantidad: 1, notas: '' }
+      ]
+    }));
+  };
+
+  const handleRemovePackagingRow = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      packagings: (prev.packagings || []).filter((_, idx) => idx !== index)
+    }));
+  };
+
+  const handleUpdatePackagingRow = (index, field, value) => {
+    setFormData(prev => {
+      const updated = [...(prev.packagings || [])];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, packagings: updated };
+    });
+  };
+
   // Cálculo en vivo del modal
   const calcularResumenEnVivo = () => {
     let costoProductos = 0;
@@ -172,7 +221,16 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
     });
 
     let costoPkg = 0;
-    if (formData.packaging_id) {
+    if (formData.packagings && formData.packagings.length > 0) {
+      formData.packagings.forEach(pRow => {
+        const pkg = packagingInsumos.find(p => p.id === Number(pRow.insumo_id));
+        if (pkg) {
+          const cantPkg = Number(pRow.cantidad) || 1;
+          const costoUnit = pkg.costo_por_unidad_base || 0;
+          costoPkg += costoUnit * cantPkg;
+        }
+      });
+    } else if (formData.packaging_id) {
       const pkg = packagingInsumos.find(p => p.id === Number(formData.packaging_id));
       if (pkg) {
         const cantPkg = Number(formData.cantidad_packaging) || 1;
@@ -223,8 +281,8 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
         nombre: formData.nombre.trim(),
         descripcion: formData.descripcion.trim() || null,
         categoria: formData.categoria.trim() || 'Packs & Bandejas',
-        packaging_id: formData.packaging_id ? Number(formData.packaging_id) : null,
-        cantidad_packaging: Number(formData.cantidad_packaging) || 1.0,
+        packaging_id: null,
+        cantidad_packaging: 1.0,
         margen_adicional: Number(formData.margen_adicional) || 0.0,
         precio_venta_fijado: formData.precio_venta_fijado ? Number(formData.precio_venta_fijado) : null,
         redondeo_multiplo: Number(formData.redondeo_multiplo) || 1000,
@@ -232,6 +290,11 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
           receta_id: Number(it.receta_id),
           cantidad: Number(it.cantidad) || 1.0,
           notas: it.notas || null
+        })),
+        packagings: (formData.packagings || []).map(pRow => ({
+          insumo_id: Number(pRow.insumo_id),
+          cantidad: Number(pRow.cantidad) || 1.0,
+          notas: pRow.notas || null
         }))
       };
 
@@ -484,12 +547,37 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
                       )}
                     </div>
 
-                    {/* Packaging */}
-                    {p.packaging_nombre ? (
+                    {/* Packaging múltiple o singular */}
+                    {p.packagings && p.packagings.length > 0 ? (
+                      <div className="pt-2 border-t border-slate-200/60 space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          <span className="flex items-center space-x-1 text-emerald-700">
+                            <PackageCheck className="w-3.5 h-3.5" />
+                            <span>Packaging ({p.packagings.length}):</span>
+                          </span>
+                          <span className="font-semibold text-slate-500">
+                            ${p.costo_packaging_total?.toLocaleString('es-AR')}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          {p.packagings.map((pkg, idx) => (
+                            <div key={idx} className="flex items-center justify-between text-xs text-slate-600 bg-white/80 px-2 py-1 rounded-lg border border-slate-100">
+                              <span className="flex items-center space-x-1.5 font-medium truncate">
+                                <span className="font-bold text-emerald-800 text-[11px] bg-emerald-50 px-1 rounded">{pkg.cantidad}x</span>
+                                <span className="truncate">{pkg.insumo_nombre}</span>
+                              </span>
+                              <span className="text-slate-400 font-medium ml-2 text-[11px] whitespace-nowrap">
+                                ${pkg.costo_total_item?.toLocaleString('es-AR')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : p.packaging_nombre ? (
                       <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs text-slate-600">
                         <span className="flex items-center space-x-1.5 font-medium">
                           <PackageCheck className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>{p.cantidad_packaging > 1 ? `${p.cantidad_packaging}x ` : ''}{p.packaging_nombre}</span>
+                          <span>{p.packaging_nombre}</span>
                         </span>
                         <span className="text-slate-400 font-medium">
                           ${p.costo_packaging_total?.toLocaleString('es-AR')}
@@ -681,42 +769,89 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
                 </div>
               </div>
 
-              {/* Packaging de la Presentación */}
+              {/* Packaging Múltiple de la Presentación (Bandejas, Bolsas, Stickers, Cajas, etc.) */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
-                <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  <PackageCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Packaging de la Presentación (Bandeja, Caja, Domo, Bolsita)</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2">
-                    <select
-                      value={formData.packaging_id}
-                      onChange={(e) => setFormData({ ...formData, packaging_id: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    >
-                      <option value="">Sin packaging adicional</option>
-                      {packagingInsumos.map(pkg => (
-                        <option key={pkg.id} value={pkg.id}>
-                          {pkg.nombre} (${pkg.costo_por_unidad_base?.toLocaleString('es-AR')})
-                        </option>
-                      ))}
-                    </select>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    <PackageCheck className="w-4 h-4 text-emerald-600" />
+                    <span>Packaging & Presentación (Bandeja, Bolsa, Sticker, etc.)</span>
                   </div>
 
-                  <div>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0.1"
-                      placeholder="Cant. (ej. 1)"
-                      value={formData.cantidad_packaging}
-                      onChange={(e) => setFormData({ ...formData, cantidad_packaging: e.target.value })}
-                      disabled={!formData.packaging_id}
-                      className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                    />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddPackagingRow}
+                    className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center space-x-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Agregar Packaging</span>
+                  </button>
                 </div>
+
+                {(!formData.packagings || formData.packagings.length === 0) ? (
+                  <p className="text-xs text-slate-400 italic py-1">
+                    Sin packaging adicional configurado. Podés agregar varios elementos (ej. 1x Bandejita + 1x Bolsita + 1x Sticker) haciendo clic en "+ Agregar Packaging".
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {formData.packagings.map((pkgRow, idx) => {
+                      const ins = packagingInsumos.find(p => p.id === Number(pkgRow.insumo_id));
+                      const costoUnit = ins?.costo_por_unidad_base || 0;
+                      const subtotCosto = costoUnit * (Number(pkgRow.cantidad) || 0);
+
+                      return (
+                        <div key={idx} className="flex items-center gap-2 p-2.5 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+                          {/* Selector de insumo de packaging */}
+                          <div className="flex-1">
+                            <select
+                              value={pkgRow.insumo_id}
+                              onChange={(e) => handleUpdatePackagingRow(idx, 'insumo_id', e.target.value)}
+                              className="w-full px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            >
+                              {packagingInsumos.map(p => (
+                                <option key={p.id} value={p.id}>
+                                  {p.nombre} (${p.costo_por_unidad_base?.toLocaleString('es-AR')})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Cantidad */}
+                          <div className="w-24">
+                            <div className="relative">
+                              <input
+                                type="number"
+                                step="any"
+                                min="0.01"
+                                placeholder="Cant."
+                                value={pkgRow.cantidad}
+                                onChange={(e) => handleUpdatePackagingRow(idx, 'cantidad', e.target.value)}
+                                className="w-full px-2.5 py-1.5 pr-8 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800 text-right focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                              />
+                              <span className="absolute right-2 top-1.5 text-[10px] text-slate-400 font-semibold pointer-events-none">
+                                u
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Subtotal costo estimado */}
+                          <div className="w-20 text-right text-xs font-bold text-slate-600 hidden sm:block">
+                            ${Math.round(subtotCosto).toLocaleString('es-AR')}
+                          </div>
+
+                          {/* Botón eliminar fila */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePackagingRow(idx)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+                            title="Quitar este packaging"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Lista dinámica de Recetas / Productos incluidos */}

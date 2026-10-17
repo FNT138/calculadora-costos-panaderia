@@ -148,6 +148,7 @@ class PresentacionVenta(Base):
 
     packaging = relationship("Insumo")
     items = relationship("PresentacionVentaItem", back_populates="presentacion", cascade="all, delete-orphan", passive_deletes=True)
+    packagings = relationship("PresentacionVentaPackaging", back_populates="presentacion", cascade="all, delete-orphan", passive_deletes=True)
 
 
 class PresentacionVentaItem(Base):
@@ -161,3 +162,16 @@ class PresentacionVentaItem(Base):
 
     presentacion = relationship("PresentacionVenta", back_populates="items")
     receta = relationship("Receta", back_populates="presentaciones")
+
+
+class PresentacionVentaPackaging(Base):
+    __tablename__ = "presentacion_venta_packagings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    presentacion_id = Column(Integer, ForeignKey("presentaciones_venta.id", ondelete="CASCADE"), nullable=False)
+    insumo_id = Column(Integer, ForeignKey("insumos.id", ondelete="CASCADE"), nullable=False)
+    cantidad = Column(Float, nullable=False, default=1.0) # Cantidad de unidades de packaging (ej. 1 bandeja, 1 bolsa, 1 sticker)
+    notas = Column(String(150), nullable=True)
+
+    presentacion = relationship("PresentacionVenta", back_populates="packagings")
+    insumo = relationship("Insumo")

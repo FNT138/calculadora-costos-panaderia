@@ -229,6 +229,23 @@ class PresentacionItemOut(BaseModel):
     class Config:
         from_attributes = True
 
+class PresentacionPackagingInput(BaseModel):
+    insumo_id: int
+    cantidad: float = Field(default=1.0, gt=0, example=1.0)
+    notas: Optional[str] = None
+
+class PresentacionPackagingOut(BaseModel):
+    id: int
+    insumo_id: int
+    insumo_nombre: str
+    cantidad: float
+    costo_unitario: float
+    costo_total_item: float
+    notas: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 class PresentacionBase(BaseModel):
     nombre: str = Field(..., example="Bandeja Degustación Merienda")
     descripcion: Optional[str] = None
@@ -242,6 +259,7 @@ class PresentacionBase(BaseModel):
 
 class PresentacionCreate(PresentacionBase):
     items: List[PresentacionItemInput] = []
+    packagings: List[PresentacionPackagingInput] = []
 
 class PresentacionUpdate(BaseModel):
     nombre: Optional[str] = None
@@ -254,6 +272,7 @@ class PresentacionUpdate(BaseModel):
     redondeo_multiplo: Optional[int] = None
     activo: Optional[int] = None
     items: Optional[List[PresentacionItemInput]] = None
+    packagings: Optional[List[PresentacionPackagingInput]] = None
 
 class PresentacionOut(PresentacionBase):
     id: int
@@ -269,6 +288,7 @@ class PresentacionOut(PresentacionBase):
     ganancia_neta: float = 0.0
     margen_porcentaje: float = 0.0
     items: List[PresentacionItemOut] = []
+    packagings: List[PresentacionPackagingOut] = []
     fecha_creacion: Optional[datetime] = None
     fecha_actualizacion: Optional[datetime] = None
 
