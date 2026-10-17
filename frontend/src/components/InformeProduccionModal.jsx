@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, 
   Printer, 
@@ -29,10 +30,18 @@ export default function InformeProduccionModal({ sesion, onClose }) {
   const horasPasivas = Math.max(0, horasTaller - horasActivas);
 
   const handlePrint = () => {
-    window.print();
+    // Resetear el scroll al tope antes de imprimir para que el navegador no capture el scroll desplazado
+    const modalEl = document.getElementById('informe-produccion-modal');
+    if (modalEl) modalEl.scrollTop = 0;
+    const scrollEl = document.querySelector('.print-scroll-container');
+    if (scrollEl) scrollEl.scrollTop = 0;
+
+    setTimeout(() => {
+      window.print();
+    }, 120);
   };
 
-  return (
+  return createPortal(
     <div 
       id="informe-produccion-modal"
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-slate-900/50 backdrop-blur-sm overflow-y-auto print-root"
@@ -319,6 +328,7 @@ export default function InformeProduccionModal({ sesion, onClose }) {
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
