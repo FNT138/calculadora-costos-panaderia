@@ -64,10 +64,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col pb-20 md:pb-10">
-      {/* Toast de notificaciones flotante */}
+      {/* Toast de notificaciones flotante (abajo a la derecha para no tapar botones superiores) */}
       {toast && (
-        <div className="fixed top-20 right-4 z-50 max-w-sm animate-in slide-in-from-top duration-200">
-          <div className={`p-4 rounded-2xl shadow-xl border flex items-center space-x-3 text-xs sm:text-sm font-medium ${
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm animate-in slide-in-from-bottom duration-200">
+          <div className={`px-4 py-3.5 rounded-2xl shadow-xl border flex items-center space-x-3 text-xs sm:text-sm font-semibold ${
             toast.type === 'error' 
               ? 'bg-rose-50 text-rose-800 border-rose-200' 
               : toast.type === 'warning'
@@ -78,7 +78,7 @@ export default function App() {
             {toast.type === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />}
             {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
             <span className="flex-1">{toast.message}</span>
-            <button onClick={() => setToast(null)} className="p-1 hover:opacity-75">
+            <button onClick={() => setToast(null)} className="p-1 hover:opacity-75 cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </div>

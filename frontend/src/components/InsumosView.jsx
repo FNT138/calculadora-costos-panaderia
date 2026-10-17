@@ -240,12 +240,36 @@ export default function InsumosView({ onNotify, isAdmin, onRequirePin }) {
 
   return (
     <div className="space-y-6">
-      {/* Barra superior con filtros y acción */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+      {/* Encabezado Principal Cohesivo */}
+      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 text-amber-800 font-bold text-xs tracking-wider uppercase mb-1">
+            <Package className="w-4 h-4 text-amber-600" />
+            <span>Inventario de Materias Primas y Descartables</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Insumos & Packaging
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+            Administrá tus precios de compra por kilo, litro o pack con conversión automática y merma. Al actualizar un precio aquí, todas las recetas y presentaciones se recalculan al instante.
+          </p>
+        </div>
+
+        <button
+          onClick={() => handleOpenModal()}
+          className="flex items-center justify-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-amber-500/15 whitespace-nowrap shrink-0 transition-all cursor-pointer"
+        >
+          {isAdmin ? <Plus className="w-4 h-4 shrink-0" /> : <Lock className="w-3.5 h-3.5 text-amber-200 shrink-0" />}
+          <span>Nuevo Insumo</span>
+        </button>
+      </div>
+
+      {/* Barra de filtros y buscador */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setFiltroCategoria('')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               filtroCategoria === ''
                 ? 'bg-amber-600 text-white shadow-sm'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -255,7 +279,7 @@ export default function InsumosView({ onNotify, isAdmin, onRequirePin }) {
           </button>
           <button
             onClick={() => setFiltroCategoria('ingrediente')}
-            className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               filtroCategoria === 'ingrediente'
                 ? 'bg-amber-600 text-white shadow-sm'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -266,7 +290,7 @@ export default function InsumosView({ onNotify, isAdmin, onRequirePin }) {
           </button>
           <button
             onClick={() => setFiltroCategoria('packaging')}
-            className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               filtroCategoria === 'packaging'
                 ? 'bg-sky-600 text-white shadow-sm'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -277,24 +301,15 @@ export default function InsumosView({ onNotify, isAdmin, onRequirePin }) {
           </button>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <div className="relative flex-1 sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar insumo..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-            />
-          </div>
-          <button
-            onClick={() => handleOpenModal()}
-            className="flex items-center space-x-1 bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 rounded-xl text-sm font-medium shadow-sm transition-all shrink-0"
-          >
-            {isAdmin ? <Plus className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5 text-amber-200" />}
-            <span className="hidden xs:inline">Nuevo Insumo</span>
-          </button>
+        <div className="relative w-full sm:w-72">
+          <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Buscar insumo o descartable..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+          />
         </div>
       </div>
 

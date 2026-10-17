@@ -355,27 +355,27 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
     <div className="space-y-6">
       
       {/* Encabezado Principal */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2 text-emerald-800 font-semibold text-xs tracking-wider uppercase mb-1">
+          <div className="flex items-center space-x-2 text-emerald-800 font-bold text-xs tracking-wider uppercase mb-1">
             <ShoppingBag className="w-4 h-4 text-emerald-600" />
             <span>Ventas & Presentaciones Comerciales</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Combos, Packs & Precios Redondeados
           </h1>
-          <p className="text-slate-500 text-sm mt-1 max-w-2xl leading-relaxed">
-            Armá bandejas surtidas, cajas y promos (ej. <i>2 alfajores + 1 cañoncito + 1 bolsita de palmeritas</i>), calculá el costo con packaging y aplicá <b>redondeo comercial hacia arriba ($5, $10, $50 o $100)</b> para una lista de precios impecable.
+          <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+            Armá bandejas surtidas, cajas y promos sumando <b>múltiples packagings</b>, tu <b>mano de obra prorrateada del Stock</b> y <b>redondeo comercial hacia arriba al millar ($1.000)</b> para cobrar sin cambio chico.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
           <button
             onClick={() => setIsListaPreciosOpen(true)}
-            className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs flex items-center space-x-2 shadow-sm transition-all cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs flex items-center space-x-2 whitespace-nowrap shrink-0 shadow-sm transition-all cursor-pointer"
             title="Generar la carta oficial de precios lista para imprimir o guardar en PDF"
           >
-            <Printer className="w-4 h-4 text-emerald-400" />
+            <Printer className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>Carta de Precios (PDF)</span>
           </button>
 
@@ -383,19 +383,19 @@ export default function VentasView({ onNotify, isAdmin, onRequirePin }) {
             href={api.exportListaPreciosCsvUrl()}
             target="_blank"
             rel="noreferrer"
-            className="px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs border border-slate-200 flex items-center space-x-2 shadow-2xs transition-all"
+            className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs border border-slate-200 flex items-center space-x-1.5 whitespace-nowrap shrink-0 shadow-2xs transition-all"
             title="Descargar lista completa en Excel / CSV"
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>Exportar CSV</span>
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>CSV</span>
           </a>
 
           <button
             onClick={() => handleOpenModal()}
-            className="px-5 py-2.5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center space-x-2 shadow-md shadow-emerald-200 transition-all cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center space-x-1.5 whitespace-nowrap shrink-0 shadow-md shadow-emerald-200 transition-all cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            <span>+ Nueva Presentación</span>
+            <Plus className="w-4 h-4 shrink-0" />
+            <span>Nueva Presentación</span>
           </button>
         </div>
       </div>

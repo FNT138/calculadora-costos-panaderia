@@ -242,28 +242,41 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
 
   return (
     <div className="space-y-6">
-      {/* Barra superior con filtros y acción */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-        <div className="flex items-center space-x-2">
-          <div className="relative flex-1 sm:w-72">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+      {/* Encabezado Principal Cohesivo */}
+      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-2 text-amber-800 font-bold text-xs tracking-wider uppercase mb-1">
+            <UtensilsCrossed className="w-4 h-4 text-amber-600" />
+            <span>Recetario Maestro & Escandallo Puro</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Recetas & Costos de Elaboración
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+            Calculá el <b>costo puro de materia prima y horno</b> por unidad sin inflar precios. Tus horas de trabajo se prorratean en <b>Mano de Obra</b> y se suman automáticamente en <b>Ventas & Packs</b>.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-slate-400" />
             <input
               type="text"
               placeholder="Buscar receta (ej. Cañoncitos)..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+              className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
             />
           </div>
-        </div>
 
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center justify-center space-x-1.5 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm transition-all"
-        >
-          {isAdmin ? <Plus className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5 text-amber-200" />}
-          <span>Nueva Receta</span>
-        </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center justify-center space-x-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-amber-500/15 whitespace-nowrap shrink-0 transition-all cursor-pointer"
+          >
+            {isAdmin ? <Plus className="w-4 h-4 shrink-0" /> : <Lock className="w-3.5 h-3.5 text-amber-200 shrink-0" />}
+            <span>Nueva Receta</span>
+          </button>
+        </div>
       </div>
 
       {/* Grid de Recetas */}
@@ -297,17 +310,17 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                       </h3>
                     </div>
 
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1 shrink-0">
                       <button
                         onClick={() => handleOpenModal(receta)}
-                        className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
                         title="Editar receta e ingredientes"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleDelete(receta.id, receta.nombre)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                         title="Eliminar receta"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -337,19 +350,25 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                   <div className="mt-4 space-y-1.5 border-t border-slate-100 pt-3 text-xs">
                     <div className="flex justify-between text-slate-500">
                       <span>Ingredientes (unitario):</span>
-                      <span className="font-medium text-slate-700">${c.costo_ingredientes_unitario}</span>
+                      <span className="font-medium text-slate-700">${c.costo_ingredientes_unitario?.toLocaleString('es-AR')}</span>
                     </div>
                     <div className="flex justify-between text-slate-500">
                       <span>Packaging en receta:</span>
-                      <span className="font-medium text-sky-700">${c.costo_packaging_unitario}</span>
+                      <span className="font-medium text-sky-700">${c.costo_packaging_unitario?.toLocaleString('es-AR')}</span>
                     </div>
                     <div className="flex justify-between text-slate-500">
                       <span>Gas / Luz / Indirectos ({receta.porcentaje_costos_indirectos}%):</span>
-                      <span className="font-medium text-slate-700">${c.costo_indirectos_unitario}</span>
+                      <span className="font-medium text-slate-700">${c.costo_indirectos_unitario?.toLocaleString('es-AR')}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400 text-[11px]">
-                      <span>Mano de obra:</span>
-                      <span className="italic text-amber-700/80">Prorrateada en Producción</span>
+                    <div className="flex justify-between text-slate-500 text-[11px] pt-0.5">
+                      <span>Mano de obra (Stock):</span>
+                      {c.costo_mano_obra_prorrateada > 0 ? (
+                        <span className="font-semibold text-amber-700">
+                          +${c.costo_mano_obra_prorrateada?.toLocaleString('es-AR')} / u <span className="text-[10px] font-normal text-slate-400">(en Ventas)</span>
+                        </span>
+                      ) : (
+                        <span className="italic text-amber-700/80">Prorrateada en Producción</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -357,7 +376,7 @@ export default function RecetasView({ onNotify, onSelectParaSimulador, isAdmin, 
                 {/* Pie de tarjeta con costo total y precios sugeridos */}
                 <div className="mt-4 pt-3 border-t border-slate-100">
                   <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-xs font-semibold text-slate-600">Costo escandallo unitario:</span>
+                    <span className="text-xs font-semibold text-slate-600">Costo escandallo puro:</span>
                     <span className="text-base font-extrabold text-slate-800">
                       ${c.costo_total_unitario?.toLocaleString('es-AR')}
                     </span>
